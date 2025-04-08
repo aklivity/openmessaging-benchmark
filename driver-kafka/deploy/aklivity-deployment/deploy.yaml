@@ -115,7 +115,8 @@
     - set_fact:
         controllerServers: "{{ groups['controller'] | map('extract', hostvars, ['ansible_default_ipv4', 'address']) | map('regex_replace', '^(.*)$', '\\1:9091') | join(',') }}"
         boostrapServers: "{{ groups['kafka'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9092') | join(',') }}"
-        sslbootstrapServers: "{{ groups['kafka'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') | join(',') }}"\
+        sslbootstrapServers: "{{ groups['kafka'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') | join(',') }}"
+        zillaBootstrapServers: "{{ groups['zilla_plus'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') | join(',') }}"
 #        ccloudBootstrapServer: "{{ lookup('ini', 'bootstrap.servers type=properties file=ccloud.properties') }}"
 #        ccloudJaasConfig: "{{ lookup('ini', 'sasl.jaas.config type=properties file=ccloud.properties') }}"
         kafkaVersion: "3.6.0"
@@ -125,6 +126,7 @@
           - "Controller Quorum Voters:     {{ controllerQuorumVoters | join(',') }}"
           - "Boostrap servers:             PLAINTEXT://{{ boostrapServers }}"
           - "SSL Bootstrap servers:        SSL://{{ sslbootstrapServers }}"
+          - "Zilla Plus Bootstrap servers (SSL):  SSL://{{ zillaBootstrapServers }}"
 #          - "CCloud Bootstrap servers:     {{ ccloudBootstrapServer }}"
 #          - "CCloud JAAS config:           {{ ccloudJaasConfig }}"
     - name: Download Kafka tarball
@@ -290,11 +292,11 @@
       raw: ls -1 /opt/benchmark/driver-kafka/ssl-*.yaml
       register: ssl_drivers_list
 
-    - name: Configure SSL Bootstrap Servers
+    - name: Configure Zilla Plus Bootstrap Servers
       lineinfile:
         dest: "{{ item }}"
         regexp: "^  bootstrap.servers="
-        line: "  bootstrap.servers={{ sslbootstrapServers }}"
+        line: "  bootstrap.servers={{ zillaBootstrapServers }}"
       with_items: "{{ ssl_drivers_list.stdout_lines }}"
 
 #    - name: Get list of ccloud driver config files
@@ -581,7 +583,18 @@
         url: https://github.com/apangin/jattach/releases/download/v1.5/jattach
         dest: /usr/bin/jattach
         mode: "0755"
+- name: Setup Zilla Plus proxy
+  hosts: zilla_plus
+  connection: ssh
+  tags: configure, zilla_plus
+  become: true
+  tasks:
+    - name: Create directory for Zilla
+      file:
+        path: /opt/zilla
+        state: directory
 
+ 
 - name:  Hosts addresses
   hosts: localhost
   become: false

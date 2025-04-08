@@ -1,8 +1,9 @@
-region          = "AWS REGION ID"
-ami             = "AWS AMI ID"
-profile         = "AWS PROFILE"
-subnet_cidrs    = ["AWS SUBNET 1", "AWS SUBNET 2", "AWS SUBNET 3"]
-azs             = ["AWS AZ 1", "AWS AZ 2", "AWS AZ 3"]
+region          = "us-east-1"
+ami             = "ami-084568db4383264d4"
+profile         = "default"
+keypair_id      = "akram-msk-proxy-us-east-1"
+subnet_cidrs    = ["15.0.0.0/20", "15.0.16.0/20", "15.0.32.0/20"]
+azs             = ["us-east-1a", "us-east-1b", "us-east-1c"]
 
 instance_types = {
   "kafka"      = "m5.xlarge"
