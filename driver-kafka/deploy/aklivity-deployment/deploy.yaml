@@ -129,7 +129,7 @@
     - set_fact:
         controllerServers: "{{ groups['controller'] | map('extract', hostvars, ['ansible_default_ipv4', 'address']) | map('regex_replace', '^(.*)$', '\\1:9091') | join(',') }}"
         boostrapServers: "{{ groups['kafka'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9092') | join(',') }}"
-        sslbootstrapServers: "{% set servers = [] %}{% for i in range(1, groups['kafka'] | length + 1) %}{% set _ = servers.append('kafka-' + i|string + '.internal.net:9093') %}{% endfor %}{{ servers|join(',') }}"
+        sslbootstrapServers: "{% set servers = [] %}{% for i in range(0, groups['kafka'] | length) %}{% set _ = servers.append('kafka-' + (i + 1000)|string + '.internal.net:9093') %}{% endfor %}{{ servers|join(',') }}"
 #        zillaBootstrapServers: "{{ groups['zilla_plus'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') | join(',') }}"
 #        ccloudBootstrapServer: "{{ lookup('ini', 'bootstrap.servers type=properties file=ccloud.properties') }}"
 #        ccloudJaasConfig: "{{ lookup('ini', 'sasl.jaas.config type=properties file=ccloud.properties') }}"
