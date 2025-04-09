@@ -96,6 +96,12 @@
           - git
           - gcc
           - make
+    - name: Debug /etc/hosts entry for Kafka brokers
+      debug:
+        msg: "{{ hostvars[item]['private_ip'] }} kafka-{{ loop_index + 1 }}.internal.net"
+      loop: "{{ groups['kafka'] }}"
+      loop_control:
+        index_var: loop_index
     - name: Add /etc/hosts entries for Kafka brokers
       lineinfile:
         path: /etc/hosts
@@ -178,7 +184,7 @@
   become: true
   tasks:
     - set_fact:
-        nodeId: "{{ groups['controller'].index(inventory_hostname) }}"
+        nodeId: "{{ groups['controller'].index(inventory_hostname) + 1 }}"
     - name: Setup JMX for Prometheus
       copy:
         src: "monitoring/jmx_exporter/jmx_prometheus_javaagent-0.13.0.jar"
@@ -212,7 +218,7 @@
     - name: Compile and install sysstat from source
       shell: cd /opt/sysstat && ./configure && make -j `nproc` && sudo make install
     - name: Format Controller log.dirs
-      shell: /opt/kafka/bin/kafka-storage.sh format -t {{ kafkaUuid }} -c /opt/kafka/config/controller.properties
+      shell: /opt/kafka/bin/kafka-storage.sh format -t {{ kafkaUuid }} --ignore-formatted -c /opt/kafka/config/controller.properties
 
 
 - name: Setup Kafka
@@ -222,7 +228,7 @@
   become: true
   tasks:
     - set_fact:
-        nodeId: "{{ groups['kafka'].index(inventory_hostname) + 1000 }}"
+        nodeId: "{{ groups['kafka'].index(inventory_hostname) + 1 }}"
     - name: Setup JMX for Prometheus
       copy:
         src: "monitoring/jmx_exporter/jmx_prometheus_javaagent-0.13.0.jar"
@@ -256,7 +262,7 @@
     - name: Compile and install sysstat from source
       shell: cd /opt/sysstat && ./configure && make -j `nproc` && sudo make install
     - name: Format Kafka log.dirs
-      shell: /opt/kafka/bin/kafka-storage.sh format -t {{ kafkaUuid }} -c /opt/kafka/config/server.properties
+      shell: /opt/kafka/bin/kafka-storage.sh format -t {{ kafkaUuid }} --ignore-formatted -c /opt/kafka/config/server.properties
 
 - name: Chrony setup
   hosts: client
@@ -591,16 +597,16 @@
         url: https://github.com/apangin/jattach/releases/download/v1.5/jattach
         dest: /usr/bin/jattach
         mode: "0755"
-- name: Setup Zilla Plus proxy
-  hosts: zilla_plus
-  connection: ssh
-  tags: configure, zilla_plus
-  become: true
-  tasks:
-    - name: Create directory for Zilla
-      file:
-        path: /opt/zilla
-        state: directory
+#- name: Setup Zilla Plus proxy
+#  hosts: zilla_plus
+#  connection: ssh
+#  tags: configure, zilla_plus
+#  become: true
+#  tasks:
+#    - name: Create directory for Zilla
+#      file:
+#        path: /opt/zilla
+#        state: directory
 
  
 - name:  Hosts addresses
