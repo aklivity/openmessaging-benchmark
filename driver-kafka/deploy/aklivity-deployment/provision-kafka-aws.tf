@@ -157,7 +157,7 @@ resource "aws_instance" "zilla_plus" {
   count         = "${var.num_instances["zilla_plus"]}"
   ami           = "ami-0db592fdb8f809d19"
   instance_type = "${var.instance_types["zilla_plus"]}"
-  key_name      = var.key_name
+  key_name               = "${aws_key_pair.auth.id}"
   subnet_id     = "${aws_subnet.benchmark_subnet[count.index % length(aws_subnet.benchmark_subnet)].id}"
   vpc_security_group_ids = ["${aws_security_group.benchmark_security_group.id}"]
 
@@ -227,28 +227,6 @@ resource "aws_instance" "kafka" {
 
   tags = {
     Name  = "omb-kafka-${random_id.hash.hex}-${count.index}"
-    owner = "${var.owner}"
-  }
-}
-
-resource "aws_instance" "client" {
-  ami                    = "${var.ami}"
-  instance_type          = "${var.instance_types["client"]}"
-  key_name               = "${aws_key_pair.auth.id}"
-  subnet_id              = "${aws_subnet.benchmark_subnet[count.index % length(aws_subnet.benchmark_subnet)].id}"
-  vpc_security_group_ids = ["${aws_security_group.benchmark_security_group.id}"]
-  count                  = "${var.num_instances["client"]}"
-  monitoring             = true
-
-  root_block_device {
-    volume_size           = 50
-    volume_type           = "gp2"
-    encrypted             = true
-    delete_on_termination = true
-  }
-
-  tags = {
-    Name = "omb-client-${random_id.hash.hex}-${count.index}"
     owner = "${var.owner}"
   }
 }

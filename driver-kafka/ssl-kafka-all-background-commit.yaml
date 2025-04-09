@@ -28,7 +28,7 @@ commonConfig: |
   security.protocol=SSL
   ssl.endpoint.identification.algorithm=
   ssl.truststore.location=/opt/benchmark/kafka.client.truststore.jks
-  ssl.truststore.password=test1234
+  ssl.truststore.password=generated
   request.timeout.ms=300000
 
 producerConfig: |

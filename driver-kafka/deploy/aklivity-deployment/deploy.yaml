@@ -96,13 +96,21 @@
           - git
           - gcc
           - make
-    - name: Print OS version and architecture
-      debug:
-        msg: "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}, Arch: {{ ansible_architecture }}"
+    - name: Add /etc/hosts entries for Kafka brokers
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars[item]['private_ip'] }} kafka-{{ loop_index + 1 }}.internal.net"
+        create: yes
+      loop: "{{ groups['kafka'] }}"
+      loop_control:
+        index_var: loop_index
     - name: Install OpenJDK 17 on Amazon Linux 2023
       dnf:
         name: java-17-amazon-corretto
         state: present
+    - name: Print All OS version and architecture
+      debug:
+        msg: "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}, Arch: {{ ansible_architecture }}"
     - file: path=/opt/kafka state=absent
     - file: path=/opt/kafka state=directory
     - set_fact:
@@ -115,8 +123,8 @@
     - set_fact:
         controllerServers: "{{ groups['controller'] | map('extract', hostvars, ['ansible_default_ipv4', 'address']) | map('regex_replace', '^(.*)$', '\\1:9091') | join(',') }}"
         boostrapServers: "{{ groups['kafka'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9092') | join(',') }}"
-        sslbootstrapServers: "{{ groups['kafka'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') | join(',') }}"
-        zillaBootstrapServers: "{{ groups['zilla_plus'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') | join(',') }}"
+        sslbootstrapServers: "{% set servers = [] %}{% for i in range(1, groups['kafka'] | length + 1) %}{% set _ = servers.append('kafka-' + i|string + '.internal.net:9093') %}{% endfor %}{{ servers|join(',') }}"
+#        zillaBootstrapServers: "{{ groups['zilla_plus'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') | join(',') }}"
 #        ccloudBootstrapServer: "{{ lookup('ini', 'bootstrap.servers type=properties file=ccloud.properties') }}"
 #        ccloudJaasConfig: "{{ lookup('ini', 'sasl.jaas.config type=properties file=ccloud.properties') }}"
         kafkaVersion: "3.6.0"
@@ -126,7 +134,7 @@
           - "Controller Quorum Voters:     {{ controllerQuorumVoters | join(',') }}"
           - "Boostrap servers:             PLAINTEXT://{{ boostrapServers }}"
           - "SSL Bootstrap servers:        SSL://{{ sslbootstrapServers }}"
-          - "Zilla Plus Bootstrap servers (SSL):  SSL://{{ zillaBootstrapServers }}"
+#          - "Zilla Plus Bootstrap servers (SSL):  SSL://{{ zillaBootstrapServers }}"
 #          - "CCloud Bootstrap servers:     {{ ccloudBootstrapServer }}"
 #          - "CCloud JAAS config:           {{ ccloudJaasConfig }}"
     - name: Download Kafka tarball
@@ -181,11 +189,11 @@
         dest: "/opt/kafka/metrics.yml"
     - name: Copy keystore
       copy:
-        src: "templates/kafka.server.keystore.jks"
+        src: "templates/internal/server/keys"
         dest: "/opt/kafka/config/kafka.server.keystore.jks"
     - name: Copy truststore
       copy:
-        src: "templates/kafka.server.truststore.jks"
+        src: "templates/internal/server/trust"
         dest: "/opt/kafka/config/kafka.server.truststore.jks"
     - name: Set up controller
       template:
@@ -225,11 +233,11 @@
         dest: "/opt/kafka/metrics.yml"
     - name: Copy keystore
       copy:
-        src: "templates/kafka.server.keystore.jks"
+        src: "templates/internal/server/keys"
         dest: "/opt/kafka/config/kafka.server.keystore.jks"
     - name: Copy truststore
       copy:
-        src: "templates/kafka.server.truststore.jks"
+        src: "templates/internal/server/trust"
         dest: "/opt/kafka/config/kafka.server.truststore.jks"
     - name: Set up broker
       template:
@@ -292,11 +300,11 @@
       raw: ls -1 /opt/benchmark/driver-kafka/ssl-*.yaml
       register: ssl_drivers_list
 
-    - name: Configure Zilla Plus Bootstrap Servers
+    - name: Configure Kafka SSL Bootstrap Servers
       lineinfile:
         dest: "{{ item }}"
         regexp: "^  bootstrap.servers="
-        line: "  bootstrap.servers={{ zillaBootstrapServers }}"
+        line: "  bootstrap.servers={{ sslbootstrapServers }}"
       with_items: "{{ ssl_drivers_list.stdout_lines }}"
 
 #    - name: Get list of ccloud driver config files
@@ -367,7 +375,7 @@
 
     - name: Copy client truststore
       copy:
-        src: "templates/kafka.client.truststore.jks"
+        src: "templates/internal/client/trust"
         dest: "/opt/benchmark/kafka.client.truststore.jks"
 
     - name: Install benchmark systemd service
