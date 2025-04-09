@@ -98,14 +98,14 @@
           - make
     - name: Debug /etc/hosts entry for Kafka brokers
       debug:
-        msg: "{{ hostvars[item]['private_ip'] }} kafka-{{ loop_index + 1 }}.internal.net"
+        msg: "{{ hostvars[item]['private_ip'] }} kafka-{{ loop_index + 1000 }}.internal.net"
       loop: "{{ groups['kafka'] }}"
       loop_control:
         index_var: loop_index
     - name: Add /etc/hosts entries for Kafka brokers
       lineinfile:
         path: /etc/hosts
-        line: "{{ hostvars[item]['private_ip'] }} kafka-{{ loop_index + 1 }}.internal.net"
+        line: "{{ hostvars[item]['private_ip'] }} kafka-{{ loop_index + 1000 }}.internal.net"
         create: yes
       loop: "{{ groups['kafka'] }}"
       loop_control:
@@ -184,7 +184,11 @@
   become: true
   tasks:
     - set_fact:
-        nodeId: "{{ groups['controller'].index(inventory_hostname) + 1 }}"
+        nodeId: "{{ loop_index }}"
+      loop: "{{ groups['controller'] }}"
+      loop_control:
+        index_var: loop_index
+      when: inventory_hostname == item
     - name: Setup JMX for Prometheus
       copy:
         src: "monitoring/jmx_exporter/jmx_prometheus_javaagent-0.13.0.jar"
@@ -228,7 +232,11 @@
   become: true
   tasks:
     - set_fact:
-        nodeId: "{{ groups['kafka'].index(inventory_hostname) + 1 }}"
+        nodeId: "{{ loop_index + 1000 }}"
+      loop: "{{ groups['kafka'] }}"
+      loop_control:
+        index_var: loop_index
+      when: inventory_hostname == item
     - name: Setup JMX for Prometheus
       copy:
         src: "monitoring/jmx_exporter/jmx_prometheus_javaagent-0.13.0.jar"
