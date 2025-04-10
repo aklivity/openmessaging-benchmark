@@ -46,6 +46,8 @@ variable "num_instances" {
   type = map
 }
 
+variable "zilla_rootfs_gb" {}
+
 variable "subnet_cidrs" {
  type        = list(string)
  description = "Subnet CIDR values"
@@ -153,16 +155,20 @@ resource "aws_security_group" "benchmark_security_group" {
   }
 }
 
-resource "aws_instance" "zilla_plus" {
-  count         = "${var.num_instances["zilla_plus"]}"
+resource "aws_instance" "zilla" {
+  count         = "${var.num_instances["zilla"]}"
   ami           = "ami-0db592fdb8f809d19"
-  instance_type = "${var.instance_types["zilla_plus"]}"
+  instance_type = "${var.instance_types["zilla"]}"
   key_name               = "${aws_key_pair.auth.id}"
   subnet_id     = "${aws_subnet.benchmark_subnet[count.index % length(aws_subnet.benchmark_subnet)].id}"
   vpc_security_group_ids = ["${aws_security_group.benchmark_security_group.id}"]
 
+  root_block_device {
+    volume_size           = "${var.zilla_rootfs_gb}"
+  }
+
   tags = {
-    Name = "zilla_plus-${count.index}"
+    Name  = "omb-zilla-${random_id.hash.hex}-${count.index}"
     owner = "${var.owner}"
   }
 }
@@ -277,8 +283,8 @@ resource "aws_instance" "prometheus" {
 resource "local_file" "hosts_ini" {
   content = templatefile("${path.module}/hosts_ini.tpl",
     {
-      zilla_plus_public_ips        = aws_instance.zilla_plus.*.public_ip
-      zilla_plus_private_ips       = aws_instance.zilla_plus.*.private_ip
+      zilla_public_ips             = aws_instance.zilla.*.public_ip
+      zilla_private_ips            = aws_instance.zilla.*.private_ip
       kafka_public_ips             = aws_instance.kafka.*.public_ip
       kafka_private_ips            = aws_instance.kafka.*.private_ip
       controller_public_ips        = aws_instance.controller.*.public_ip
@@ -295,8 +301,8 @@ resource "local_file" "hosts_ini" {
   filename = "${path.module}/hosts.ini"
 }
 
-output "zilla_plus_ips" {
-  value = aws_instance.zilla_plus.*.public_ip
+output "zilla_ips" {
+  value = aws_instance.zilla.*.public_ip
 }
 
 output "clients" {
