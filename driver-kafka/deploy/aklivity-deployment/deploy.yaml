@@ -692,14 +692,3 @@
     - debug:
         msg: "Prometheus clients http://{{ item }}:9090/"
       with_items: "{{ groups['prometheus'] }}"
-
-# - name: Verify
-#   hosts: client
-#   become: false
-#   tasks:
-#     - name: Set Zilla IP
-#       set_fact:
-#         zillaIp: "{{ hostvars[groups['zilla'][groups['client'].index(inventory_hostname) % (groups['zilla'] | length)]]['private_ip'] }}"
-#     - name: Debug zillaIp
-#       debug:
-#         msg: "zilla:{{ zillaIp }}"
