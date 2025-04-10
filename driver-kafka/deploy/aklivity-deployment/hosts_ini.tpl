@@ -1,6 +1,6 @@
-[zilla-plus]
-%{ for i, ip in zilla_plus_public_ips ~}
-${ ip } ansible_user=${ ssh_user } ansible_become=True private_ip=${zilla_plus_private_ips[i]} id=${i}
+[zilla]
+%{ for i, ip in zilla_public_ips ~}
+${ ip } ansible_user=${ ssh_user } ansible_become=True private_ip=${zilla_private_ips[i]} id=${i}
 %{ endfor ~}
 
 [kafka]
