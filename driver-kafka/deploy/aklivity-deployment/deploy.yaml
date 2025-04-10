@@ -72,8 +72,29 @@
     - name: Reboot the machine with all defaults
       reboot:
 
-- name: Kafka and Controller setup
+- name: Kafka internal DNS setup
   hosts: all
+  connection: ssh
+  tags: configure, clients, kafka, controller
+  become: true
+  tasks:
+    - name: Debug /etc/hosts entry for Kafka brokers
+      debug:
+        msg: "{{ hostvars[item]['private_ip'] }} kafka-{{ loop_index + 1000 }}.internal.net"
+      loop: "{{ groups['kafka'] }}"
+      loop_control:
+        index_var: loop_index
+    - name: Add /etc/hosts entries for Kafka brokers
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars[item]['private_ip'] }} kafka-{{ loop_index + 1000 }}.internal.net"
+        create: yes
+      loop: "{{ groups['kafka'] }}"
+      loop_control:
+        index_var: loop_index
+
+- name: Kafka and Controller setup
+  hosts: all:!zilla
   connection: ssh
   tags: configure, clients, kafka, controller
   become: true
@@ -96,20 +117,6 @@
           - git
           - gcc
           - make
-    - name: Debug /etc/hosts entry for Kafka brokers
-      debug:
-        msg: "{{ hostvars[item]['private_ip'] }} kafka-{{ loop_index + 1000 }}.internal.net"
-      loop: "{{ groups['kafka'] }}"
-      loop_control:
-        index_var: loop_index
-    - name: Add /etc/hosts entries for Kafka brokers
-      lineinfile:
-        path: /etc/hosts
-        line: "{{ hostvars[item]['private_ip'] }} kafka-{{ loop_index + 1000 }}.internal.net"
-        create: yes
-      loop: "{{ groups['kafka'] }}"
-      loop_control:
-        index_var: loop_index
     - name: Install OpenJDK 17 on Amazon Linux 2023
       dnf:
         name: java-17-amazon-corretto
@@ -128,19 +135,19 @@
         index_var: item_idx
     - set_fact:
         controllerServers: "{{ groups['controller'] | map('extract', hostvars, ['ansible_default_ipv4', 'address']) | map('regex_replace', '^(.*)$', '\\1:9091') | join(',') }}"
-        boostrapServers: "{{ groups['kafka'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9092') | join(',') }}"
+        bootstrapServers: "{{ groups['kafka'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9092') | join(',') }}"
         sslbootstrapServers: "{% set servers = [] %}{% for i in range(0, groups['kafka'] | length) %}{% set _ = servers.append('kafka-' + (i + 1000)|string + '.internal.net:9093') %}{% endfor %}{{ servers|join(',') }}"
-#        zillaBootstrapServers: "{{ groups['zilla_plus'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') | join(',') }}"
+        zillaBootstrapServers: "{% set servers = [] %}{% for i in range(0, groups['kafka'] | length) %}{% set _ = servers.append('kafka-' + (i + 1000)|string + '.external.net:9093') %}{% endfor %}{{ servers|join(',') }}"
 #        ccloudBootstrapServer: "{{ lookup('ini', 'bootstrap.servers type=properties file=ccloud.properties') }}"
 #        ccloudJaasConfig: "{{ lookup('ini', 'sasl.jaas.config type=properties file=ccloud.properties') }}"
         kafkaVersion: "3.6.0"
     - debug:
         msg:
-          - "Controller servers:           {{ controllerServers }}"
-          - "Controller Quorum Voters:     {{ controllerQuorumVoters | join(',') }}"
-          - "Boostrap servers:             PLAINTEXT://{{ boostrapServers }}"
-          - "SSL Bootstrap servers:        SSL://{{ sslbootstrapServers }}"
-#          - "Zilla Plus Bootstrap servers (SSL):  SSL://{{ zillaBootstrapServers }}"
+          - "Controller servers:            {{ controllerServers }}"
+          - "Controller Quorum Voters:      {{ controllerQuorumVoters | join(',') }}"
+          - "Bootstrap servers:             PLAINTEXT://{{ bootstrapServers }}"
+          - "SSL Bootstrap servers:         SSL://{{ sslbootstrapServers }}"
+          - "Zilla Bootstrap servers (SSL): SSL://{{ zillaBootstrapServers }}"
 #          - "CCloud Bootstrap servers:     {{ ccloudBootstrapServer }}"
 #          - "CCloud JAAS config:           {{ ccloudJaasConfig }}"
     - name: Download Kafka tarball
@@ -303,22 +310,39 @@
       raw: ls -1 /opt/benchmark/driver-kafka/*.yaml
       register: drivers_list
 
+    - set_fact:
+        zillaIp: "{{ hostvars[groups['zilla'][groups['client'].index(inventory_hostname) % (groups['zilla'] | length)]]['private_ip'] }}"
+    - name: Debug /etc/hosts entry for clients
+      debug:
+        msg: "{{ zillaIp }} kafka-{{ loop_index + 1000 }}.external.net"
+      loop: "{{ groups['kafka'] }}"
+      loop_control:
+        index_var: loop_index
+    - name: Add /etc/hosts entries for clients
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ zillaIp }} kafka-{{ loop_index + 1000 }}.external.net"
+        create: yes
+      loop: "{{ groups['kafka'] }}"
+      loop_control:
+        index_var: loop_index
+
     - name: Configure Bootstrap Servers
       lineinfile:
          dest: '{{ item }}'
          regexp: '^  bootstrap.servers='
-         line: '  bootstrap.servers={{ boostrapServers }}'
+         line: '  bootstrap.servers={{ bootstrapServers }}'
       with_items: '{{ drivers_list.stdout_lines }}'
 
     - name: Get list of ssl driver config files
       raw: ls -1 /opt/benchmark/driver-kafka/ssl-*.yaml
       register: ssl_drivers_list
 
-    - name: Configure Kafka SSL Bootstrap Servers
+    - name: Configure Zilla SSL Bootstrap Servers
       lineinfile:
         dest: "{{ item }}"
         regexp: "^  bootstrap.servers="
-        line: "  bootstrap.servers={{ sslbootstrapServers }}"
+        line: "  bootstrap.servers={{ zillaBootstrapServers }}"
       with_items: "{{ ssl_drivers_list.stdout_lines }}"
 
 #    - name: Get list of ccloud driver config files
@@ -347,14 +371,14 @@
       lineinfile:
          dest: '{{ item }}'
          regexp: '^  bootstrap.servers='
-         line: '  bootstrap.servers={{ boostrapServers }}'
+         line: '  bootstrap.servers={{ bootstrapServers }}'
       with_items: '{{ jms_drivers_list.stdout_lines }}'
 
     - name: Configure JMS Connection Factory
       ansible.builtin.replace:
          dest: '{{ item }}'
          regexp: 'localhost\:9092'
-         replace: '{{ boostrapServers }}'
+         replace: '{{ zillaBootstrapServers }}'
       with_items: '{{ jms_drivers_list.stdout_lines }}'
 
     - name: Setup JMX for Producer/Consumer clients
@@ -389,13 +413,14 @@
 
     - name: Copy client truststore
       copy:
-        src: "templates/internal/client/trust"
+        src: "templates/external/client/trust"
         dest: "/opt/benchmark/kafka.client.truststore.jks"
 
     - name: Install benchmark systemd service
       template:
         src: "templates/benchmark-worker.service"
         dest: "/etc/systemd/system/benchmark-worker.service"
+
     - systemd:
         state: restarted
         daemon_reload: yes
@@ -450,7 +475,7 @@
         name: "prometheus"
 
 - name: Install Node Exporter
-  hosts: all
+  hosts: all:!zilla
   become: true
   tasks:
     - name: Add user node_exporter
@@ -587,7 +612,7 @@
         timeout: 5
 
 - name: Install jattach and async-profiler
-  hosts: all
+  hosts: all:!zilla
   become: true
   vars:
     profilerArch:
@@ -605,18 +630,49 @@
         url: https://github.com/apangin/jattach/releases/download/v1.5/jattach
         dest: /usr/bin/jattach
         mode: "0755"
-#- name: Setup Zilla Plus proxy
-#  hosts: zilla_plus
-#  connection: ssh
-#  tags: configure, zilla_plus
-#  become: true
-#  tasks:
-#    - name: Create directory for Zilla
-#      file:
-#        path: /opt/zilla
-#        state: directory
 
- 
+- name: Setup Zilla gateway
+  hosts: zilla
+  connection: ssh
+  tags: configure, zilla
+  become: true
+  tasks:
+    # - name: Configure zilla service
+    #   lineinfile:
+    #      dest: /etc/systemd/system/zilla-plus.service
+    #      regexp: '^ExecStart='
+    #      line: 'ExecStart=/opt/zilla/zilla start -v -e -Pzilla.engine.memory.percentage=0.25'
+    - name: Configure zilla
+      template:
+        src: templates/zilla.yaml
+        dest: /etc/zilla/zilla.yaml
+    - name: Configure zilla
+      template:
+        src: templates/zilla.yaml
+        dest: /etc/zilla/zilla.yaml
+    - name: Configure zilla keystore directory
+      file:
+        path: /etc/zilla/external/server
+        state: directory
+        recurse: yes
+    - name: Configure zilla keystore
+      copy:
+        src: templates/external/server/keys
+        dest: /etc/zilla/external/server/keys
+    - name: Configure zilla truststore directory
+      file:
+        path: /etc/zilla/internal/client
+        state: directory
+        recurse: yes
+    - name: Configure zilla truststore
+      copy:
+        src: templates/internal/client/trust
+        dest: /etc/zilla/internal/client/trust
+    - systemd:
+        state: restarted
+        daemon_reload: yes
+        name: "zilla-plus"
+
 - name:  Hosts addresses
   hosts: localhost
   become: false
@@ -628,8 +684,22 @@
         msg: "Kafka brokers {{ item }}"
       with_items: "{{ groups['kafka'] }}"
     - debug:
+        msg: "Zilla gateways {{ item }}"
+      with_items: "{{ groups['zilla'] }}"
+    - debug:
         msg: "Benchmark clients {{ item }}"
       with_items: "{{ groups['client'] }}"
     - debug:
         msg: "Prometheus clients http://{{ item }}:9090/"
       with_items: "{{ groups['prometheus'] }}"
+
+# - name: Verify
+#   hosts: client
+#   become: false
+#   tasks:
+#     - name: Set Zilla IP
+#       set_fact:
+#         zillaIp: "{{ hostvars[groups['zilla'][groups['client'].index(inventory_hostname) % (groups['zilla'] | length)]]['private_ip'] }}"
+#     - name: Debug zillaIp
+#       debug:
+#         msg: "zilla:{{ zillaIp }}"
