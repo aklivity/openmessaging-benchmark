@@ -136,7 +136,6 @@
     - set_fact:
         controllerServers: "{{ groups['controller'] | map('extract', hostvars, ['ansible_default_ipv4', 'address']) | map('regex_replace', '^(.*)$', '\\1:9091') | join(',') }}"
         bootstrapServers: "{{ groups['kafka'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9092') | join(',') }}"
-        sslbootstrapServers: "{% set servers = [] %}{% for i in range(0, groups['kafka'] | length) %}{% set _ = servers.append('kafka-' + (i + 1000)|string + '.internal.net:9093') %}{% endfor %}{{ servers|join(',') }}"
         zillaBootstrapServers: "{% set servers = [] %}{% for i in range(0, groups['kafka'] | length) %}{% set _ = servers.append('kafka-' + (i + 1000)|string + '.external.net:9093') %}{% endfor %}{{ servers|join(',') }}"
         ccloudBootstrapServer: "{{ lookup('ini', 'bootstrap.servers type=properties file=ccloud.properties') }}"
         ccloudJaasConfig: "{{ lookup('ini', 'sasl.jaas.config type=properties file=ccloud.properties') }}"
@@ -146,7 +145,6 @@
           - "Controller servers:            {{ controllerServers }}"
           - "Controller Quorum Voters:      {{ controllerQuorumVoters | join(',') }}"
           - "Bootstrap servers:             PLAINTEXT://{{ bootstrapServers }}"
-          - "SSL Bootstrap servers:         SSL://{{ sslbootstrapServers }}"
           - "Zilla Bootstrap servers (SSL): SSL://{{ zillaBootstrapServers }}"
           - "CCloud Bootstrap servers:     {{ ccloudBootstrapServer }}"
           - "CCloud JAAS config:           {{ ccloudJaasConfig }}"
@@ -306,18 +304,14 @@
         dest: /opt
     - shell: mv /opt/openmessaging-benchmark-0.0.1-SNAPSHOT /opt/benchmark
 
-    - name: Get list of driver config files
-      raw: ls -1 /opt/benchmark/driver-kafka/*.yaml
-      register: drivers_list
-
-    - set_fact:
-        zillaIp: "{{ hostvars[groups['zilla'][groups['client'].index(inventory_hostname) % (groups['zilla'] | length)]]['private_ip'] }}"
     - name: Debug /etc/hosts entry for clients
       debug:
         msg: "{{ zillaIp }} kafka-{{ loop_index + 1000 }}.external.net"
       loop: "{{ groups['kafka'] }}"
       loop_control:
         index_var: loop_index
+    - set_fact:
+        zillaIp: "{{ hostvars[groups['zilla'][groups['client'].index(inventory_hostname) % (groups['zilla'] | length)]]['private_ip'] }}"
     - name: Add /etc/hosts entries for clients
       lineinfile:
         path: /etc/hosts
@@ -327,6 +321,10 @@
       loop_control:
         index_var: loop_index
 
+    - name: Get list of driver config files
+      raw: ls -1 /opt/benchmark/driver-kafka/*.yaml
+      register: drivers_list
+
     - name: Configure Bootstrap Servers
       lineinfile:
          dest: '{{ item }}'
@@ -334,9 +332,9 @@
          line: '  bootstrap.servers={{ bootstrapServers }}'
       with_items: '{{ drivers_list.stdout_lines }}'
 
-    - name: Get list of ssl driver config files
-      raw: ls -1 /opt/benchmark/driver-kafka/ssl-*.yaml
-      register: ssl_drivers_list
+    - name: Get list of zilla driver config files
+      raw: ls -1 /opt/benchmark/driver-kafka/zilla-*.yaml
+      register: zilla_drivers_list
 
     - name: Configure Zilla SSL Bootstrap Servers
       lineinfile:
