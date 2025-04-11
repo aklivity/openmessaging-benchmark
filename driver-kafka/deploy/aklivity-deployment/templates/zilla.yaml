@@ -60,3 +60,53 @@ bindings:
   tcp_client:
     type: tcp
     kind: client
+
+
+---
+name: confluent-cloud
+vaults:
+  external:
+    type: filesystem
+    options:
+      keys:
+        store: external/server/keys
+        type: pkcs12
+        password: generated
+bindings:
+  tcp_server:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 9092
+    exit: tls_server
+  tls_server:
+    type: tls
+    kind: server
+    vault: external
+    options:
+      keys:
+      - external.net
+    exit: kafka_proxy
+  kafka_proxy:
+    type: kafka-proxy
+    kind: proxy
+    options:
+      external:
+        host: kafka-####.external.net
+        default: kafka.external.net
+        port: 9092
+      internal:
+        host: lkc-8jwkkm-dm87gn-####.us-east-1.aws.glb.confluent.cloud
+        default: lkc-8jwkkm-dm87gn.us-east-1.aws.glb.confluent.cloud
+        port: 9092
+    exit: tls_client
+  tls_client:
+    type: tls
+    kind: client
+    exit: tcp_client
+  tcp_client:
+    type: tcp
+    kind: client
+

@@ -115,9 +115,9 @@
     - set_fact:
         controllerServers: "{{ groups['controller'] | map('extract', hostvars, ['ansible_default_ipv4', 'address']) | map('regex_replace', '^(.*)$', '\\1:9091') | join(',') }}"
         boostrapServers: "{{ groups['kafka'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9092') | join(',') }}"
-        sslbootstrapServers: "{{ groups['kafka'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') | join(',') }}"\
-#        ccloudBootstrapServer: "{{ lookup('ini', 'bootstrap.servers type=properties file=ccloud.properties') }}"
-#        ccloudJaasConfig: "{{ lookup('ini', 'sasl.jaas.config type=properties file=ccloud.properties') }}"
+        sslbootstrapServers: "{{ groups['kafka'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') | join(',') }}"
+        ccloudBootstrapServer: "{{ lookup('ini', 'bootstrap.servers type=properties file=ccloud.properties') }}"
+        ccloudJaasConfig: "{{ lookup('ini', 'sasl.jaas.config type=properties file=ccloud.properties') }}"
         kafkaVersion: "3.6.0"
     - debug:
         msg:
@@ -125,24 +125,24 @@
           - "Controller Quorum Voters:     {{ controllerQuorumVoters | join(',') }}"
           - "Boostrap servers:             PLAINTEXT://{{ boostrapServers }}"
           - "SSL Bootstrap servers:        SSL://{{ sslbootstrapServers }}"
-#          - "CCloud Bootstrap servers:     {{ ccloudBootstrapServer }}"
-#          - "CCloud JAAS config:           {{ ccloudJaasConfig }}"
-    - name: Download Kafka tarball
-      get_url:
-        url: "http://archive.apache.org/dist/kafka/{{ kafkaVersion }}/kafka_2.13-{{ kafkaVersion }}.tgz"
-        dest: "/tmp/kafka_2.13-{{ kafkaVersion }}.tgz"
-    - name: Extract Kafka
-      unarchive:
-        src: "/tmp/kafka_2.13-{{ kafkaVersion }}.tgz"
-        dest: "/opt/kafka"
-        remote_src: yes
-        extra_opts: [ "--strip-components=1" ]
-#    - name: Download Kafka packages
+          - "CCloud Bootstrap servers:     {{ ccloudBootstrapServer }}"
+          - "CCloud JAAS config:           {{ ccloudJaasConfig }}"
+#    - name: Download Kafka tarball
+#      get_url:
+#        url: "http://archive.apache.org/dist/kafka/{{ kafkaVersion }}/kafka_2.13-{{ kafkaVersion }}.tgz"
+#        dest: "/tmp/kafka_2.13-{{ kafkaVersion }}.tgz"
+#    - name: Extract Kafka
 #      unarchive:
-#        src: "http://archive.apache.org/dist/kafka/{{ kafkaVersion }}/kafka_2.13-{{ kafkaVersion }}.tgz"
+#        src: "/tmp/kafka_2.13-{{ kafkaVersion }}.tgz"
+#        dest: "/opt/kafka"
 #        remote_src: yes
-#        dest: /opt/kafka
-#        extra_opts: ["--strip-components=1"]
+#        extra_opts: [ "--strip-components=1" ]
+    - name: Download Kafka packages
+      unarchive:
+        src: "http://archive.apache.org/dist/kafka/{{ kafkaVersion }}/kafka_2.13-{{ kafkaVersion }}.tgz"
+        remote_src: yes
+        dest: /opt/kafka
+        extra_opts: ["--strip-components=1"]
 #    - name: Download Kafka packages
 #      unarchive:
 #        src: "/tmp/kafka_2.13-7.5.0-0-ce.tgz"
@@ -297,23 +297,23 @@
         line: "  bootstrap.servers={{ sslbootstrapServers }}"
       with_items: "{{ ssl_drivers_list.stdout_lines }}"
 
-#    - name: Get list of ccloud driver config files
-#      raw: ls -1 /opt/benchmark/driver-kafka/ccloud-*.yaml
-#      register: ccloud_drivers_list
+    - name: Get list of ccloud driver config files
+      raw: ls -1 /opt/benchmark/driver-kafka/ccloud-*.yaml
+      register: ccloud_drivers_list
 
-#    - name: Configure CCloud Bootstrap Servers
-#      lineinfile:
-#        dest: "{{ item }}"
-#        regexp: "^  bootstrap.servers="
-#        line: "  bootstrap.servers={{ ccloudBootstrapServer }}"
-#      with_items: "{{ ccloud_drivers_list.stdout_lines }}"
-#
-#    - name: Configure CCloud JAAS Config
-#      lineinfile:
-#        dest: "{{ item }}"
-#        regexp: "^  sasl.jaas.config="
-#        line: "  sasl.jaas.config={{ ccloudJaasConfig }}"
-#      with_items: "{{ ccloud_drivers_list.stdout_lines }}"
+    - name: Configure CCloud Bootstrap Servers
+      lineinfile:
+        dest: "{{ item }}"
+        regexp: "^  bootstrap.servers="
+        line: "  bootstrap.servers={{ ccloudBootstrapServer }}"
+      with_items: "{{ ccloud_drivers_list.stdout_lines }}"
+
+    - name: Configure CCloud JAAS Config
+      lineinfile:
+        dest: "{{ item }}"
+        regexp: "^  sasl.jaas.config="
+        line: "  sasl.jaas.config={{ ccloudJaasConfig }}"
+      with_items: "{{ ccloud_drivers_list.stdout_lines }}"
 
     - name: Get list of jms driver config files
       raw: ls -1 /opt/benchmark/driver-jms/kafka*.yaml

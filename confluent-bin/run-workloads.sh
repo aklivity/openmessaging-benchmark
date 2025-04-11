@@ -27,7 +27,7 @@ function restart_clients {
 
 trap "restart_clients" INT
 
-OMB_ENV=aklivity-deployment
+OMB_ENV=confluent-deployment
 [ -d ./driver-kafka/deploy/$OMB_ENV ] || usage "Should be executed in OMB root directory"
 
 AK_CC=$1
