@@ -23,12 +23,15 @@ skipCreateTopic: false
 topicConfig: |
   min.insync.replicas=2
 
+# ssl.truststore.location and ssl.truststore.password only required for aklivity-deployment
 commonConfig: |
   bootstrap.servers=pkc-xxxxxxxx.confluent.cloud:9092
   sasl.mechanism=PLAIN
   sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="XXXXXX" password="XXXXXX";
   security.protocol=SASL_SSL
   ssl.endpoint.identification.algorithm=https
+  ssl.truststore.location=/opt/benchmark/kafka.client.truststore.jks
+  ssl.truststore.password=generated
   request.timeout.ms=300000
   max.in.flight.requests.per.connection=5
 

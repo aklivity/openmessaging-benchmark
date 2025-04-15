@@ -103,8 +103,8 @@
       dnf:
         name: java-17-amazon-corretto
         state: present
-    - file: path=/opt/kafka state=absent
-    - file: path=/opt/kafka state=directory
+#    - file: path=/opt/kafka state=absent
+#    - file: path=/opt/kafka state=directory
     - set_fact:
         controllerQuorumVoters: []
     - set_fact:
@@ -137,12 +137,12 @@
 #        dest: "/opt/kafka"
 #        remote_src: yes
 #        extra_opts: [ "--strip-components=1" ]
-    - name: Download Kafka packages
-      unarchive:
-        src: "http://archive.apache.org/dist/kafka/{{ kafkaVersion }}/kafka_2.13-{{ kafkaVersion }}.tgz"
-        remote_src: yes
-        dest: /opt/kafka
-        extra_opts: ["--strip-components=1"]
+#    - name: Download Kafka packages
+#      unarchive:
+#        src: "http://archive.apache.org/dist/kafka/{{ kafkaVersion }}/kafka_2.13-{{ kafkaVersion }}.tgz"
+#        remote_src: yes
+#        dest: /opt/kafka
+#        extra_opts: ["--strip-components=1"]
 #    - name: Download Kafka packages
 #      unarchive:
 #        src: "/tmp/kafka_2.13-7.5.0-0-ce.tgz"

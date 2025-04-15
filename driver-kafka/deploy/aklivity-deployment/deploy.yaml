@@ -124,8 +124,8 @@
     - name: Print All OS version and architecture
       debug:
         msg: "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}, Arch: {{ ansible_architecture }}"
-    - file: path=/opt/kafka state=absent
-    - file: path=/opt/kafka state=directory
+#    - file: path=/opt/kafka state=absent
+#    - file: path=/opt/kafka state=directory
     - set_fact:
         controllerQuorumVoters: []
     - set_fact:
@@ -146,18 +146,18 @@
           - "Controller Quorum Voters:      {{ controllerQuorumVoters | join(',') }}"
           - "Bootstrap servers:             PLAINTEXT://{{ bootstrapServers }}"
           - "Zilla Bootstrap servers (SSL): SSL://{{ zillaBootstrapServers }}"
-          - "CCloud Bootstrap servers:     {{ ccloudBootstrapServer }}"
-          - "CCloud JAAS config:           {{ ccloudJaasConfig }}"
-    - name: Download Kafka tarball
-      get_url:
-        url: "http://archive.apache.org/dist/kafka/{{ kafkaVersion }}/kafka_2.13-{{ kafkaVersion }}.tgz"
-        dest: "/tmp/kafka_2.13-{{ kafkaVersion }}.tgz"
-    - name: Extract Kafka
-      unarchive:
-        src: "/tmp/kafka_2.13-{{ kafkaVersion }}.tgz"
-        dest: "/opt/kafka"
-        remote_src: yes
-        extra_opts: [ "--strip-components=1" ]
+          - "CCloud Bootstrap servers:      {{ ccloudBootstrapServer }}"
+          - "CCloud JAAS config:            {{ ccloudJaasConfig }}"
+#    - name: Download Kafka tarball
+#      get_url:
+#        url: "http://archive.apache.org/dist/kafka/{{ kafkaVersion }}/kafka_2.13-{{ kafkaVersion }}.tgz"
+#        dest: "/tmp/kafka_2.13-{{ kafkaVersion }}.tgz"
+#    - name: Extract Kafka
+#      unarchive:
+#        src: "/tmp/kafka_2.13-{{ kafkaVersion }}.tgz"
+#        dest: "/opt/kafka"
+#        remote_src: yes
+#        extra_opts: [ "--strip-components=1" ]
 #    - name: Download Kafka packages
 #      unarchive:
 #        src: "http://archive.apache.org/dist/kafka/{{ kafkaVersion }}/kafka_2.13-{{ kafkaVersion }}.tgz"
@@ -304,23 +304,6 @@
         dest: /opt
     - shell: mv /opt/openmessaging-benchmark-0.0.1-SNAPSHOT /opt/benchmark
 
-    - name: Debug /etc/hosts entry for clients
-      debug:
-        msg: "{{ zillaIp }} kafka-{{ loop_index + 1000 }}.external.net"
-      loop: "{{ groups['kafka'] }}"
-      loop_control:
-        index_var: loop_index
-    - set_fact:
-        zillaIp: "{{ hostvars[groups['zilla'][groups['client'].index(inventory_hostname) % (groups['zilla'] | length)]]['private_ip'] }}"
-    - name: Add /etc/hosts entries for clients
-      lineinfile:
-        path: /etc/hosts
-        line: "{{ zillaIp }} kafka-{{ loop_index + 1000 }}.external.net"
-        create: yes
-      loop: "{{ groups['kafka'] }}"
-      loop_control:
-        index_var: loop_index
-
     - name: Get list of driver config files
       raw: ls -1 /opt/benchmark/driver-kafka/*.yaml
       register: drivers_list
@@ -341,7 +324,7 @@
         dest: "{{ item }}"
         regexp: "^  bootstrap.servers="
         line: "  bootstrap.servers={{ zillaBootstrapServers }}"
-      with_items: "{{ ssl_drivers_list.stdout_lines }}"
+      with_items: "{{ zilla_drivers_list.stdout_lines }}"
 
     - name: Get list of ccloud driver config files
       raw: ls -1 /opt/benchmark/driver-kafka/ccloud-*.yaml
@@ -670,6 +653,59 @@
         state: restarted
         daemon_reload: yes
         name: "zilla-plus"
+- name: Dnsmasq setup
+  hosts: client
+  connection: ssh
+  become: true
+  tasks:
+    - name: Ensure dnsmasq is installed
+      become: true
+      package:
+        name: dnsmasq
+        state: present
+    - set_fact:
+        zillaIp: "{{ hostvars[groups['zilla'][groups['client'].index(inventory_hostname) % (groups['zilla'] | length)]]['private_ip'] }}"
+    - name: Configure dnsmasq for Zilla proxy hostname mapping
+      become: true
+      blockinfile:
+        path: /etc/dnsmasq.d/zilla-proxy.conf
+        create: yes
+        block: |
+          address=/kafka-/.external.net/{{ zillaIp }}
+          address=/kafka.external.net/{{ zillaIp }}
+    - name: Update /etc/resolv.conf to use dnsmasq
+      become: true
+      lineinfile:
+        path: /etc/resolv.conf
+        insertbefore: BOF
+        line: "nameserver 127.0.0.1"
+        state: present
+    - name: Ensure DNSMASQ_EXCEPT=lo is set to prevent resolv.conf overwrite
+      lineinfile:
+        path: /etc/default/dnsmasq
+        create: yes
+        line: 'DNSMASQ_EXCEPT=lo'
+    - name: Ensure dnsmasq systemd override directory exists
+      file:
+        path: /etc/systemd/system/dnsmasq.service.d
+        state: directory
+        mode: '0755'
+    - name: Create systemd override to set DNSMASQ_EXCEPT=lo
+      copy:
+        dest: /etc/systemd/system/dnsmasq.service.d/override.conf
+        content: |
+          [Service]
+          Environment="DNSMASQ_EXCEPT=lo"
+        force: yes
+    - name: Reload systemd to apply override
+      systemd:
+        daemon_reload: yes
+    - name: Restart dnsmasq
+      become: true
+      service:
+        name: dnsmasq
+        state: restarted
+        enabled: true
 
 - name:  Hosts addresses
   hosts: localhost
