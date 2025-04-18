@@ -24,7 +24,7 @@ topicConfig: |
   min.insync.replicas=2
 
 commonConfig: |
-  bootstrap.servers=SSL://localhost:9093
+  bootstrap.servers=SSL://zilla.external.net:9093
   security.protocol=SSL
   ssl.endpoint.identification.algorithm=
   ssl.truststore.location=/opt/benchmark/kafka.client.truststore.jks

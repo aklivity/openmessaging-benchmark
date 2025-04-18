@@ -121,9 +121,6 @@
       dnf:
         name: java-17-amazon-corretto
         state: present
-    - name: Print All OS version and architecture
-      debug:
-        msg: "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}, Arch: {{ ansible_architecture }}"
 #    - file: path=/opt/kafka state=absent
 #    - file: path=/opt/kafka state=directory
     - set_fact:
@@ -136,18 +133,24 @@
     - set_fact:
         controllerServers: "{{ groups['controller'] | map('extract', hostvars, ['ansible_default_ipv4', 'address']) | map('regex_replace', '^(.*)$', '\\1:9091') | join(',') }}"
         bootstrapServers: "{{ groups['kafka'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9092') | join(',') }}"
-        zillaBootstrapServers: "{% set servers = [] %}{% for i in range(0, groups['kafka'] | length) %}{% set _ = servers.append('kafka-' + (i + 1000)|string + '.external.net:9093') %}{% endfor %}{{ servers|join(',') }}"
+        sslbootstrapServers: "{% set servers = [] %}{% for i in range(0, groups['kafka'] | length) %}{% set _ = servers.append('kafka-' + (i + 1000)|string + '.internal.net:9093') %}{% endfor %}{{ servers|join(',') }}"
+        zpKafkaBootstrapServers: "{% set servers = [] %}{% for i in range(0, groups['kafka'] | length) %}{% set _ = servers.append('kafka-' + (i + 1000)|string + '.external.net:9093') %}{% endfor %}{{ servers|join(',') }}"
+        zpCcloudBootstrapServer: "{{ lookup('ini', 'bootstrap.servers type=properties file=zp-ccloud.properties') }}"
+        zpCcloudJaasConfig: "{{ lookup('ini', 'sasl.jaas.config type=properties file=zp-ccloud.properties') }}"
         ccloudBootstrapServer: "{{ lookup('ini', 'bootstrap.servers type=properties file=ccloud.properties') }}"
         ccloudJaasConfig: "{{ lookup('ini', 'sasl.jaas.config type=properties file=ccloud.properties') }}"
         kafkaVersion: "3.6.0"
     - debug:
         msg:
-          - "Controller servers:            {{ controllerServers }}"
-          - "Controller Quorum Voters:      {{ controllerQuorumVoters | join(',') }}"
-          - "Bootstrap servers:             PLAINTEXT://{{ bootstrapServers }}"
-          - "Zilla Bootstrap servers (SSL): SSL://{{ zillaBootstrapServers }}"
-          - "CCloud Bootstrap servers:      {{ ccloudBootstrapServer }}"
-          - "CCloud JAAS config:            {{ ccloudJaasConfig }}"
+          - "Controller servers:                        {{ controllerServers }}"
+          - "Controller Quorum Voters:                  {{ controllerQuorumVoters | join(',') }}"
+          - "Bootstrap servers:                         PLAINTEXT://{{ bootstrapServers }}"
+          - "SSL Bootstrap servers (SSL):               SSL://{{ sslbootstrapServers }}"
+          - "Zilla PLus Kafka Bootstrap servers (SSL):  SSL://{{ zpKafkaBootstrapServers }}"
+          - "Zilla Plus CCloud Bootstrap servers:       {{ zpCcloudBootstrapServer }}"
+          - "Zilla Plus CCloud JAAS config:             {{ zpCcloudJaasConfig }}"
+          - "CCloud Bootstrap servers:                  {{ ccloudBootstrapServer }}"
+          - "CCloud JAAS config:                        {{ ccloudJaasConfig }}"
 #    - name: Download Kafka tarball
 #      get_url:
 #        url: "http://archive.apache.org/dist/kafka/{{ kafkaVersion }}/kafka_2.13-{{ kafkaVersion }}.tgz"
@@ -304,6 +307,7 @@
         dest: /opt
     - shell: mv /opt/openmessaging-benchmark-0.0.1-SNAPSHOT /opt/benchmark
 
+    # Set up driver config
     - name: Get list of driver config files
       raw: ls -1 /opt/benchmark/driver-kafka/*.yaml
       register: drivers_list
@@ -315,16 +319,54 @@
          line: '  bootstrap.servers={{ bootstrapServers }}'
       with_items: '{{ drivers_list.stdout_lines }}'
 
-    - name: Get list of zilla driver config files
-      raw: ls -1 /opt/benchmark/driver-kafka/zilla-*.yaml
-      register: zilla_drivers_list
+    # Set up SSL driver config
+    - name: Get list of ssl driver config files
+      raw: ls -1 /opt/benchmark/driver-kafka/ssl-*.yaml
+      register: ssl_drivers_list
 
-    - name: Configure Zilla SSL Bootstrap Servers
+    - name: Configure SSL Bootstrap Servers
       lineinfile:
         dest: "{{ item }}"
         regexp: "^  bootstrap.servers="
-        line: "  bootstrap.servers={{ zillaBootstrapServers }}"
-      with_items: "{{ zilla_drivers_list.stdout_lines }}"
+        line: "  bootstrap.servers={{ sslbootstrapServers }}"
+      with_items: "{{ ssl_drivers_list.stdout_lines }}"
+
+    # Set up Zilla Plus Kafka driver config
+    - name: Get list of zilla driver config files
+      raw: ls -1 /opt/benchmark/driver-kafka/zp-kafka-*.yaml
+      register: zp_kafka_drivers_list
+
+    - name: Configure Zilla Plus Kafka Bootstrap Servers
+      lineinfile:
+        dest: "{{ item }}"
+        regexp: "^  bootstrap.servers="
+        line: "  bootstrap.servers={{ zpKafkaBootstrapServers }}"
+      with_items: "{{ zp_kafka_drivers_list.stdout_lines }}"
+      
+    # Set up Zilla Plus CCloud driver config
+    - name: Get list of Zilla Plus ccloud driver config files
+      raw: ls -1 /opt/benchmark/driver-kafka/zp-ccloud-*.yaml
+      register: zp_ccloud_drivers_list
+
+    - name: Configure Zilla Plus CCloud Bootstrap Servers
+      lineinfile:
+        dest: "{{ item }}"
+        regexp: "^  bootstrap.servers="
+        line: "  bootstrap.servers={{ zpCcloudBootstrapServer }}"
+      with_items: "{{ zp_ccloud_drivers_list.stdout_lines }}"
+
+    - name: Configure Zilla Plus CCloud JAAS Config
+      lineinfile:
+        dest: "{{ item }}"
+        regexp: "^  sasl.jaas.config="
+        line: "  sasl.jaas.config={{ zpCcloudJaasConfig }}"
+      with_items: "{{ zp_ccloud_drivers_list.stdout_lines }}"
+
+    # Set up CCloud driver config
+
+    - name: Get list of ccloud driver config files
+      raw: ls -1 /opt/benchmark/driver-kafka/ccloud-*.yaml
+      register: ccloud_drivers_list
 
     - name: Get list of ccloud driver config files
       raw: ls -1 /opt/benchmark/driver-kafka/ccloud-*.yaml
@@ -344,6 +386,7 @@
         line: "  sasl.jaas.config={{ ccloudJaasConfig }}"
       with_items: "{{ ccloud_drivers_list.stdout_lines }}"
 
+    # Set up JMS driver config
     - name: Get list of jms driver config files
       raw: ls -1 /opt/benchmark/driver-jms/kafka*.yaml
       register: jms_drivers_list
@@ -359,7 +402,7 @@
       ansible.builtin.replace:
          dest: '{{ item }}'
          regexp: 'localhost\:9092'
-         replace: '{{ zillaBootstrapServers }}'
+         replace: '{{ bootstrapServers }}'
       with_items: '{{ jms_drivers_list.stdout_lines }}'
 
     - name: Setup JMX for Producer/Consumer clients
@@ -392,10 +435,15 @@
         src: "templates/workers.yaml"
         dest: "/opt/benchmark/workers.yaml"
 
-    - name: Copy client truststore
+    - name: Copy external client truststore
       copy:
         src: "templates/external/client/trust"
         dest: "/opt/benchmark/kafka.client.truststore.jks"
+
+    - name: Copy internal client truststore
+      copy:
+        src: "templates/internal/client/trust"
+        dest: "/opt/benchmark/internal.kafka.client.truststore.jks"
 
     - name: Install benchmark systemd service
       template:
@@ -612,25 +660,86 @@
         dest: /usr/bin/jattach
         mode: "0755"
 
+- name: Dnsmasq setup
+  hosts: client
+  connection: ssh
+  become: true
+  tasks:
+    - name: Ensure dnsmasq is installed
+      become: true
+      package:
+        name: dnsmasq
+        state: present
+    - set_fact:
+        zillaIp: "{{ hostvars[groups['zilla'][groups['client'].index(inventory_hostname) % (groups['zilla'] | length)]]['private_ip'] }}"
+    - name: Configure dnsmasq for Zilla proxy hostname mapping
+      become: true
+      blockinfile:
+        path: /etc/dnsmasq.d/zilla-proxy.conf
+        create: yes
+        block: |
+          address=/kafka-/.external.net/{{ zillaIp }}
+          address=/kafka.external.net/{{ zillaIp }}
+    - name: Update generated resolv.conf to include dnsmasq
+      become: true
+      blockinfile:
+        path: /etc/systemd/resolved.conf.d/dnsmask_servers.conf
+        create: yes
+        block: |
+          [Resolve]
+          DNS=127.0.0.1
+    - name: Reload systemd to apply settings
+      systemd:
+        daemon_reload: yes
+    - name: Restart dnsmasq service
+      become: true
+      service:
+        name: dnsmasq
+        state: restarted
+        enabled: true
+    - name: Restart systemd resolvd service
+      become: true
+      service:
+        name: systemd-resolved
+        state: restarted
+        enabled: true
+
 - name: Setup Zilla gateway
   hosts: zilla
   connection: ssh
   tags: configure, zilla
   become: true
   tasks:
-    # - name: Configure zilla service
-    #   lineinfile:
-    #      dest: /etc/systemd/system/zilla-plus.service
-    #      regexp: '^ExecStart='
-    #      line: 'ExecStart=/opt/zilla/zilla start -v -e -Pzilla.engine.memory.percentage=0.25'
+    - set_fact:
+        clusterId: "{{ lookup('ini', 'cluster.id type=properties file=zp-ccloud.properties') }}"
+        networkId: "{{ lookup('ini', 'network.id type=properties file=zp-ccloud.properties') }}"
+        awsRegion: "{{ lookup('ini', 'region type=properties file=zp-ccloud.properties') }}"
+    - name: Configure zilla engine directory
+      file: path=/dev/shm/zilla state=directory owner=ec2-user group=ec2-user
+    - name: Configure zilla service
+      lineinfile:
+         dest: /etc/systemd/system/zilla-plus.service
+         regexp: '^ExecStart='
+         line: 'ExecStart=/opt/zilla/zilla start -v'
     - name: Configure zilla
       template:
         src: templates/zilla.yaml
         dest: /etc/zilla/zilla.yaml
-    - name: Configure zilla
-      template:
-        src: templates/zilla.yaml
-        dest: /etc/zilla/zilla.yaml
+    - name: Update CC cluster id
+      replace:
+        path: "/etc/zilla/zilla.yaml"
+        regexp: "CLUSTER_ID"
+        replace: "{{ clusterId }}"
+    - name: Update CC network id
+      replace:
+        path: "/etc/zilla/zilla.yaml"
+        regexp: "NETWORK_ID"
+        replace: "{{ networkId }}"
+    - name: Update CC network id
+      replace:
+        path: "/etc/zilla/zilla.yaml"
+        regexp: "REGION"
+        replace: "{{ awsRegion }}"
     - name: Configure zilla keystore directory
       file:
         path: /etc/zilla/external/server
@@ -653,59 +762,6 @@
         state: restarted
         daemon_reload: yes
         name: "zilla-plus"
-- name: Dnsmasq setup
-  hosts: client
-  connection: ssh
-  become: true
-  tasks:
-    - name: Ensure dnsmasq is installed
-      become: true
-      package:
-        name: dnsmasq
-        state: present
-    - set_fact:
-        zillaIp: "{{ hostvars[groups['zilla'][groups['client'].index(inventory_hostname) % (groups['zilla'] | length)]]['private_ip'] }}"
-    - name: Configure dnsmasq for Zilla proxy hostname mapping
-      become: true
-      blockinfile:
-        path: /etc/dnsmasq.d/zilla-proxy.conf
-        create: yes
-        block: |
-          address=/kafka-/.external.net/{{ zillaIp }}
-          address=/kafka.external.net/{{ zillaIp }}
-    - name: Update /etc/resolv.conf to use dnsmasq
-      become: true
-      lineinfile:
-        path: /etc/resolv.conf
-        insertbefore: BOF
-        line: "nameserver 127.0.0.1"
-        state: present
-    - name: Ensure DNSMASQ_EXCEPT=lo is set to prevent resolv.conf overwrite
-      lineinfile:
-        path: /etc/default/dnsmasq
-        create: yes
-        line: 'DNSMASQ_EXCEPT=lo'
-    - name: Ensure dnsmasq systemd override directory exists
-      file:
-        path: /etc/systemd/system/dnsmasq.service.d
-        state: directory
-        mode: '0755'
-    - name: Create systemd override to set DNSMASQ_EXCEPT=lo
-      copy:
-        dest: /etc/systemd/system/dnsmasq.service.d/override.conf
-        content: |
-          [Service]
-          Environment="DNSMASQ_EXCEPT=lo"
-        force: yes
-    - name: Reload systemd to apply override
-      systemd:
-        daemon_reload: yes
-    - name: Restart dnsmasq
-      become: true
-      service:
-        name: dnsmasq
-        state: restarted
-        enabled: true
 
 - name:  Hosts addresses
   hosts: localhost
