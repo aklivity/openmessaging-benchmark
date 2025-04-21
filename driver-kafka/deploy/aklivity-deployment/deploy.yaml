@@ -720,7 +720,7 @@
       lineinfile:
          dest: /etc/systemd/system/zilla-plus.service
          regexp: '^ExecStart='
-         line: 'ExecStart=/opt/zilla/zilla start -v'
+         line: 'ExecStart=/opt/zilla/zilla start -v -Pzilla.engine.buffer.slot.capacity=65536 -Pzilla.zilla.binding.kafka.proxy.produce.version.max=1'
     - name: Configure zilla
       template:
         src: templates/zilla.yaml

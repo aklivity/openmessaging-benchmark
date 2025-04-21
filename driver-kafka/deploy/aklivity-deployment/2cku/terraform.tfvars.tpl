@@ -6,6 +6,7 @@ subnet_cidrs    = ["15.0.0.0/20", "15.0.16.0/20", "15.0.32.0/20"]
 azs             = ["us-east-1a", "us-east-1b", "us-east-1c"]
 
 instance_types = {
+  "zilla"      = "m5.xlarge"
   "kafka"      = "m5.xlarge"
   "controller" = "m5.xlarge"
   "client"     = "m5.xlarge"

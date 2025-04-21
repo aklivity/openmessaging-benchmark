@@ -5,6 +5,7 @@ subnet_cidrs    = ["AWS SUBNET 1", "AWS SUBNET 2", "AWS SUBNET 3"]
 azs             = ["AWS AZ 1", "AWS AZ 2", "AWS AZ 3"]
 
 instance_types = {
+  "zilla"      = "m5.4xlarge"
   "kafka"      = "m5.4xlarge"
   "controller" = "m5.xlarge"
   "client"     = "m5.4xlarge"

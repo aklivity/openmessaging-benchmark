@@ -1,6 +1,9 @@
 # Confluent deployment
 
-This README provides you with step-by-step instructions for running OpenMessaging Benchmark (OMB) with Confluent deployment.
+This README provides you with step-by-step instructions for running OpenMessaging Benchmark (OMB) with:
+ - Zilla Plus deployment.
+ - Apache Kafka deployment.
+ - Confluent deployment.
 
 ## 0) Prerequisites
 
@@ -36,23 +39,23 @@ brew install terraform-inventory
 ssh-keygen -f ~/.ssh/omb
 ```
 
-8. Checkout [Confluent fork of OpenMessaging Benchmark](https://github.com/confluentinc/benchmark)
-9. Switch to branch `10x-performance-blog`
+8. Checkout [Confluent fork of OpenMessaging Benchmark](https://github.com/aklivity/openmessaging-benchmark)
+9. Switch to branch `zilla-plus-benchmark`
 10. Compile OMB libraries.
 
 ```bash
-git clone https://github.com/confluentinc/benchmark
+git clone git@github.com:aklivity/openmessaging-benchmark.git
 cd benchmark
-git checkout 10x-performance-blog
+git checkout zilla-plus-benchmark
 mvn clean install -Dlicense.skip=true
 ```
 
 ## 1) Create a deployment setup with Terraform
 
-1. Start from the `driver-kafka/deploy/confluent-deployment` directory.
+1. Start from the `driver-kafka/deploy/aklivity-deployment` directory.
 
 ```bash
-cd driver-kafka/deploy/confluent-deployment
+cd driver-kafka/deploy/aklivity-deployment
 ```
 
 2. Copy the `terraform.tfvars.tpl` file and the `ansible-config.yaml` file from one of the `*cku` directory you want to test.
@@ -77,15 +80,15 @@ azs             = ["AWS AZ 1", "AWS AZ 2", "AWS AZ 3"]
 Example values:
 
 ```text
-region          = "eu-central-2"
+region          = "us-east-1"
 ami             = "ami-0f0fa69ebc3b199bb"
 profile         = "test-profile"
-keypair_id      = "test-omb-eu-central-2"
+keypair_id      = "test-omb-us-east1"
 subnet_cidrs    = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-azs             = ["eu-central-2a", "eu-central-2b", "eu-central-2c"]
+azs             = ["us-east1a", "us-east1b", "us-east1c"]
 ```
 
-> :warning: Please use ami `ami-0f0fa69ebc3b199bb` in `eu-central-2` to reproduce the result.
+> :warning: Please use ami `ami-0e449927258d45bc4` in `us-east1` to reproduce the result.
 
 4. Rename `terraform.tfvars.tpl` to `terraform.tfvars` when you have filled in the details.
 
@@ -96,12 +99,15 @@ mv terraform.tfvars.tpl terraform.tfvars
 5. Copy `ccloud.properties.tpl` file to `ccloud.properties` and update the `bootstrap.server` and `sasl.jaas.config` values with your Confluent Cloud
    details
 
+6. Copy `zp-ccloud.properties.tpl` file to `zp-ccloud.properties` and `sasl.jaas.config` values with your Confluent Cloud
+   details
+
 ```bash
 cp ccloud.properties.tpl ccloud.properties
 vi ccloud.properties
 ```
 
-6. Run Terraform
+7. Run Terraform
 
 If you haven't previously done so, run the following:
 
@@ -113,14 +119,6 @@ Now run Terraform apply to provision the EC2 instances.
 
 ```bash
 terraform apply
-```
-
-7. Run Ansible
-
-Generate SSL certificates, if you have not done so (only need to do this once).
-
-```bash
-ansible-playbook setup-ssl-certs.yaml
 ```
 
 Deploy the clusters.
@@ -189,7 +187,19 @@ cd ../../..
 ./confluent-bin/run-workloads.sh cc workloads/confluent-blog-workloads-2cku-1p-1c-2Kb-45topic-200part-100MBps.yaml
 ```
 
-Note: Connection to Confluent Cloud will use the details specified in `ccloud.properties` in the previous step.
+- To run against Zilla Plus + Apache Kafka:
+
+```bash
+./confluent-bin/run-workloads.sh zpak workloads/confluent-blog-workloads-2cku-1p-1c-2Kb-45topic-200part-100MBps.yaml
+```
+
+- To run against Zilla Plus + Confluent Cloud:
+
+```bash
+./confluent-bin/run-workloads.sh zpcc workloads/confluent-blog-workloads-2cku-1p-1c-2Kb-45topic-200part-100MBps.yaml
+```
+
+Note: Connection to Confluent Cloud will use the details specified in `zp-ccloud.properties` and `ccloud.properties` in the previous step.
 
 ## 3) Monitor progress with Prometheus
 
