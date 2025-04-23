@@ -1,4 +1,4 @@
-# Confluent deployment
+# Aklvity deployment
 
 This README provides you with step-by-step instructions for running OpenMessaging Benchmark (OMB) with:
  - Zilla Plus deployment.
@@ -39,14 +39,14 @@ brew install terraform-inventory
 ssh-keygen -f ~/.ssh/omb
 ```
 
-8. Checkout [Confluent fork of OpenMessaging Benchmark](https://github.com/aklivity/openmessaging-benchmark)
-9. Switch to branch `zilla-plus-benchmark`
+8. Checkout [Aklivity fork of OpenMessaging Benchmark](https://github.com/aklivity/openmessaging-benchmark)
+9. Switch to branch `aklivity-deployment`
 10. Compile OMB libraries.
 
 ```bash
 git clone git@github.com:aklivity/openmessaging-benchmark.git
 cd benchmark
-git checkout zilla-plus-benchmark
+git checkout aklivity-deployment
 mvn clean install -Dlicense.skip=true
 ```
 
@@ -81,9 +81,8 @@ Example values:
 
 ```text
 region          = "us-east-1"
-ami             = "ami-0f0fa69ebc3b199bb"
-profile         = "test-profile"
-keypair_id      = "test-omb-us-east1"
+ami             = "ami-0e449927258d45bc4"
+profile         = "default"
 subnet_cidrs    = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
 azs             = ["us-east1a", "us-east1b", "us-east1c"]
 ```
@@ -105,6 +104,11 @@ mv terraform.tfvars.tpl terraform.tfvars
 ```bash
 cp ccloud.properties.tpl ccloud.properties
 vi ccloud.properties
+```
+
+```bash
+cp zp-ccloud.properties.tpl zp-ccloud.properties
+vi zp-ccloud.properties
 ```
 
 7. Run Terraform
