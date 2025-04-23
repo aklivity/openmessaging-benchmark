@@ -157,7 +157,7 @@ resource "aws_security_group" "benchmark_security_group" {
 
 resource "aws_instance" "zilla" {
   count         = "${var.num_instances["zilla"]}"
-  ami           = "ami-062c770ad5f19eb07"
+  ami           = "ami-0742906022ca03beb"
   instance_type = "${var.instance_types["zilla"]}"
   key_name               = "${aws_key_pair.auth.id}"
   subnet_id     = "${aws_subnet.benchmark_subnet[count.index % length(aws_subnet.benchmark_subnet)].id}"
