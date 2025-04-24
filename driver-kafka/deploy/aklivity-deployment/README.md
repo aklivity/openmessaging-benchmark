@@ -158,7 +158,7 @@ openssl s_client -connect pkc-xxxx.confluent.cloud:9092 -debug
 > If it prints the key and the connection details, then it has successfully established connection to the Confluent Cloud
 > cluster. Otherwise, please check if the network configurations (e.g. routing table, security group, etc) are correct.
 
-1. Start from the root of OMB directory. If you are in `confluent-deployment` directory, you need to do:
+1. Start from the root of OMB directory. If you are in `aklivity-deployment` directory, you need to do:
 
 ```bash
 cd ../../..
