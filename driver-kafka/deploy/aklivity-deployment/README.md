@@ -1,7 +1,8 @@
 # Aklvity deployment
 
 This README provides you with step-by-step instructions for running OpenMessaging Benchmark (OMB) with:
- - Zilla Plus deployment.
+ - Zilla Plus Apache Kafka deployment.
+ - Zilla Plus Confluent deployment.
  - Apache Kafka deployment.
  - Confluent deployment.
 
@@ -40,13 +41,10 @@ ssh-keygen -f ~/.ssh/omb
 ```
 
 8. Checkout [Aklivity fork of OpenMessaging Benchmark](https://github.com/aklivity/openmessaging-benchmark)
-9. Switch to branch `aklivity-deployment`
-10. Compile OMB libraries.
 
 ```bash
 git clone git@github.com:aklivity/openmessaging-benchmark.git
-cd benchmark
-git checkout aklivity-deployment
+cd openmessaging-benchmark
 mvn clean install -Dlicense.skip=true
 ```
 
@@ -84,10 +82,10 @@ region          = "us-east-1"
 ami             = "ami-0e449927258d45bc4"
 profile         = "default"
 subnet_cidrs    = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-azs             = ["us-east1a", "us-east1b", "us-east1c"]
+azs             = ["us-east-1a", "us-east-1b", "us-east-1c"]
 ```
 
-> :warning: Please use ami `ami-0e449927258d45bc4` in `us-east1` to reproduce the result.
+> :warning: Please use ami `ami-0e449927258d45bc4` in `us-east-1` to reproduce the result.
 
 4. Rename `terraform.tfvars.tpl` to `terraform.tfvars` when you have filled in the details.
 
@@ -98,7 +96,7 @@ mv terraform.tfvars.tpl terraform.tfvars
 5. Copy `ccloud.properties.tpl` file to `ccloud.properties` and update the `bootstrap.server` and `sasl.jaas.config` values with your Confluent Cloud
    details
 
-6. Copy `zp-ccloud.properties.tpl` file to `zp-ccloud.properties` and `sasl.jaas.config` values with your Confluent Cloud
+6. Copy `zilla-ccloud.properties.tpl` file to `zilla-ccloud.properties` and `sasl.jaas.config` values with your Confluent Cloud
    details
 
 ```bash
@@ -107,8 +105,8 @@ vi ccloud.properties
 ```
 
 ```bash
-cp zp-ccloud.properties.tpl zp-ccloud.properties
-vi zp-ccloud.properties
+cp zilla-ccloud.properties.tpl zilla-ccloud.properties
+vi zilla-ccloud.properties
 ```
 
 7. Run Terraform
@@ -203,7 +201,7 @@ cd ../../..
 ./confluent-bin/run-workloads.sh zpcc workloads/confluent-blog-workloads-2cku-1p-1c-2Kb-45topic-200part-100MBps.yaml
 ```
 
-Note: Connection to Confluent Cloud will use the details specified in `zp-ccloud.properties` and `ccloud.properties` in the previous step.
+Note: Connection to Confluent Cloud will use the details specified in `zilla-ccloud.properties` and `ccloud.properties` in the previous step.
 
 ## 3) Monitor progress with Prometheus
 
@@ -229,7 +227,7 @@ From the same Terraform directory that you ran the `apply` command, run: `terraf
 same owner tag value when prompted.
 
 ```bash
-cd driver-kafka/deploy/confluent-deployment
+cd driver-kafka/deploy/aklivity-deployment
 terraform destroy
 ```
 
@@ -238,7 +236,7 @@ terraform destroy
 ## Could not find matching plugin: ''sudo''
 
 ```
-task path: /Users/myuser/git/omb-internal-10x/driver-kafka/deploy/confluent-deployment/deploy.yaml:15
+task path: /Users/myuser/git/omb-internal-10x/driver-kafka/deploy/aklivity-deployment/deploy.yaml:15
 fatal: [18.117.187.18]: FAILED! => {
     "msg": "Invalid become method specified, could not find matching plugin: ''sudo''. Use `ansible-doc -t become -l` to list available plugins."
 }
@@ -246,7 +244,7 @@ fatal: [18.117.187.18]: FAILED! => {
 
 This error means that ansible can't find the local (ie on the machine running the ansible script) sudo plugin.
 
-To resulve this, update the `driver-kafka/deploy/confluent-deployment/ansible.cfg` as described in the comments in that file, taking into account the version of the sudo plugin that you have available in your installation.
+To resulve this, update the `driver-kafka/deploy/aklivity-deployment/ansible.cfg` as described in the comments in that file, taking into account the version of the sudo plugin that you have available in your installation.
 
 You can find the plugin version using `ansible-doc -t become -l`.  If the output contains `sudo` then the version is the older style and the config file should look like:
 
@@ -298,7 +296,7 @@ pip install ansible
 The step `TASK [Copy benchmark code]` throws the following error when running `ansible-playbook deploy.yaml --extra-vars "@ansible-config.yaml"`
 
 ```
-fatal: [52.15.93.212]: FAILED! => {"changed": false, "msg": "Could not find or access '../../../package/target/openmessaging-benchmark-0.0.1-SNAPSHOT-bin.tar.gz'\nSearched in:\n\t/Users/myuser/Coding/omb-internal-10x/driver-kafka/deploy/confluent-deployment/files/../../../package/target/openmessaging-benchmark-0.0.1-SNAPSHOT-bin.tar.gz\n\t/Users/myuser/Coding/omb-internal-10x/driver-kafka/deploy/confluent-deployment/../../../package/target/openmessaging-benchmark-0.0.1-SNAPSHOT-bin.tar.gz\n\t/Users/myuser/Coding/omb-internal-10x/driver-kafka/deploy/confluent-deployment/files/../../../package/target/openmessaging-benchmark-0.0.1-SNAPSHOT-bin.tar.gz\n\t/Users/myuser/Coding/omb-internal-10x/driver-kafka/deploy/confluent-deployment/../../../package/target/openmessaging-benchmark-0.0.1-SNAPSHOT-bin.tar.gz on the Ansible Controller.\nIf you are using a module and expect the file to exist on the remote, see the remote_src option"}
+fatal: [52.15.93.212]: FAILED! => {"changed": false, "msg": "Could not find or access '../../../package/target/openmessaging-benchmark-0.0.1-SNAPSHOT-bin.tar.gz'\nSearched in:\n\t/Users/myuser/Coding/omb-internal-10x/driver-kafka/deploy/aklivity-deployment/files/../../../package/target/openmessaging-benchmark-0.0.1-SNAPSHOT-bin.tar.gz\n\t/Users/myuser/Coding/omb-internal-10x/driver-kafka/deploy/aklivity-deployment/../../../package/target/openmessaging-benchmark-0.0.1-SNAPSHOT-bin.tar.gz\n\t/Users/myuser/Coding/omb-internal-10x/driver-kafka/deploy/aklivity-deployment/files/../../../package/target/openmessaging-benchmark-0.0.1-SNAPSHOT-bin.tar.gz\n\t/Users/myuser/Coding/omb-internal-10x/driver-kafka/deploy/aklivity-deployment/../../../package/target/openmessaging-benchmark-0.0.1-SNAPSHOT-bin.tar.gz on the Ansible Controller.\nIf you are using a module and expect the file to exist on the remote, see the remote_src option"}
 An exception occurred during task execution. To see the full traceback, use -vvv. The error was: If you are using a module and expect the file to exist on the remote, see the remote_src option
 
 ```

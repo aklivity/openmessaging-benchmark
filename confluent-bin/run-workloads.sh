@@ -46,10 +46,10 @@ CLIENT0_IP=$(terraform-inventory --list ./ | jq -rM '.client_0[]')
 
 case "$AK_CC" in
   zpak)
-    DRIVER_PATH="driver-kafka/zp-kafka-all-background-commit.yaml"
+    DRIVER_PATH="driver-kafka/zilla-kafka-all-background-commit.yaml"
     ;;
   zpcc)
-    DRIVER_PATH="driver-kafka/zp-ccloud-background-commit.yaml"
+    DRIVER_PATH="driver-kafka/zilla-ccloud-background-commit.yaml"
     ;;
   ak)
     DRIVER_PATH="driver-kafka/ssl-kafka-all-background-commit.yaml"

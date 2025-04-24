@@ -134,9 +134,9 @@
         controllerServers: "{{ groups['controller'] | map('extract', hostvars, ['ansible_default_ipv4', 'address']) | map('regex_replace', '^(.*)$', '\\1:9091') | join(',') }}"
         bootstrapServers: "{{ groups['kafka'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9092') | join(',') }}"
         sslbootstrapServers: "{% set servers = [] %}{% for i in range(0, groups['kafka'] | length) %}{% set _ = servers.append('kafka-' + (i + 1000)|string + '.internal.net:9093') %}{% endfor %}{{ servers|join(',') }}"
-        zpKafkaBootstrapServers: "{% set servers = [] %}{% for i in range(0, groups['kafka'] | length) %}{% set _ = servers.append('kafka-' + (i + 1000)|string + '.external.net:9093') %}{% endfor %}{{ servers|join(',') }}"
-        zpCcloudBootstrapServer: "{{ lookup('ini', 'bootstrap.servers type=properties file=zp-ccloud.properties') }}"
-        zpCcloudJaasConfig: "{{ lookup('ini', 'sasl.jaas.config type=properties file=zp-ccloud.properties') }}"
+        zillaKafkaBootstrapServers: "{% set servers = [] %}{% for i in range(0, groups['kafka'] | length) %}{% set _ = servers.append('kafka-' + (i + 1000)|string + '.external.net:9093') %}{% endfor %}{{ servers|join(',') }}"
+        zillaCcloudBootstrapServer: "{{ lookup('ini', 'bootstrap.servers type=properties file=zilla-ccloud.properties') }}"
+        zillaCcloudJaasConfig: "{{ lookup('ini', 'sasl.jaas.config type=properties file=zilla-ccloud.properties') }}"
         ccloudBootstrapServer: "{{ lookup('ini', 'bootstrap.servers type=properties file=ccloud.properties') }}"
         ccloudJaasConfig: "{{ lookup('ini', 'sasl.jaas.config type=properties file=ccloud.properties') }}"
         kafkaVersion: "3.6.0"
@@ -146,9 +146,9 @@
           - "Controller Quorum Voters:                  {{ controllerQuorumVoters | join(',') }}"
           - "Bootstrap servers:                         PLAINTEXT://{{ bootstrapServers }}"
           - "SSL Bootstrap servers (SSL):               SSL://{{ sslbootstrapServers }}"
-          - "Zilla PLus Kafka Bootstrap servers (SSL):  SSL://{{ zpKafkaBootstrapServers }}"
-          - "Zilla Plus CCloud Bootstrap servers:       {{ zpCcloudBootstrapServer }}"
-          - "Zilla Plus CCloud JAAS config:             {{ zpCcloudJaasConfig }}"
+          - "Zilla PLus Kafka Bootstrap servers (SSL):  SSL://{{ zillaKafkaBootstrapServers }}"
+          - "Zilla Plus CCloud Bootstrap servers:       {{ zillaCcloudBootstrapServer }}"
+          - "Zilla Plus CCloud JAAS config:             {{ zillaCcloudJaasConfig }}"
           - "CCloud Bootstrap servers:                  {{ ccloudBootstrapServer }}"
           - "CCloud JAAS config:                        {{ ccloudJaasConfig }}"
     - name: Download Kafka packages
@@ -245,11 +245,11 @@
         dest: "/opt/kafka/metrics.yml"
     - name: Copy keystore
       copy:
-        src: "templates/internal/server/keys"
+        src: "templates/tls/kafka/server/keys"
         dest: "/opt/kafka/config/kafka.server.keystore.jks"
     - name: Copy truststore
       copy:
-        src: "templates/internal/server/trust"
+        src: "templates/tls/kafka/server/trust"
         dest: "/opt/kafka/config/kafka.server.truststore.jks"
     - name: Set up broker
       template:
@@ -323,34 +323,34 @@
 
     # Set up Zilla Plus Kafka driver config
     - name: Get list of zilla driver config files
-      raw: ls -1 /opt/benchmark/driver-kafka/zp-kafka-*.yaml
-      register: zp_kafka_drivers_list
+      raw: ls -1 /opt/benchmark/driver-kafka/zilla-kafka-*.yaml
+      register: zilla_kafka_drivers_list
 
     - name: Configure Zilla Plus Kafka Bootstrap Servers
       lineinfile:
         dest: "{{ item }}"
         regexp: "^  bootstrap.servers="
-        line: "  bootstrap.servers={{ zpKafkaBootstrapServers }}"
-      with_items: "{{ zp_kafka_drivers_list.stdout_lines }}"
+        line: "  bootstrap.servers={{ zillaKafkaBootstrapServers }}"
+      with_items: "{{ zilla_kafka_drivers_list.stdout_lines }}"
       
     # Set up Zilla Plus CCloud driver config
     - name: Get list of Zilla Plus ccloud driver config files
-      raw: ls -1 /opt/benchmark/driver-kafka/zp-ccloud-*.yaml
-      register: zp_ccloud_drivers_list
+      raw: ls -1 /opt/benchmark/driver-kafka/zilla-ccloud-*.yaml
+      register: zilla_ccloud_drivers_list
 
     - name: Configure Zilla Plus CCloud Bootstrap Servers
       lineinfile:
         dest: "{{ item }}"
         regexp: "^  bootstrap.servers="
-        line: "  bootstrap.servers={{ zpCcloudBootstrapServer }}"
-      with_items: "{{ zp_ccloud_drivers_list.stdout_lines }}"
+        line: "  bootstrap.servers={{ zillaCcloudBootstrapServer }}"
+      with_items: "{{ zilla_ccloud_drivers_list.stdout_lines }}"
 
     - name: Configure Zilla Plus CCloud JAAS Config
       lineinfile:
         dest: "{{ item }}"
         regexp: "^  sasl.jaas.config="
-        line: "  sasl.jaas.config={{ zpCcloudJaasConfig }}"
-      with_items: "{{ zp_ccloud_drivers_list.stdout_lines }}"
+        line: "  sasl.jaas.config={{ zillaCcloudJaasConfig }}"
+      with_items: "{{ zilla_ccloud_drivers_list.stdout_lines }}"
 
     # Set up CCloud driver config
 
@@ -425,15 +425,15 @@
         src: "templates/workers.yaml"
         dest: "/opt/benchmark/workers.yaml"
 
-    - name: Copy external client truststore
+    - name: Copy zilla client truststore
       copy:
-        src: "templates/external/client/trust"
-        dest: "/opt/benchmark/kafka.client.truststore.jks"
+        src: "templates/tls/zilla/client/trust"
+        dest: "/opt/benchmark/zilla.client.truststore.jks"
 
-    - name: Copy internal client truststore
+    - name: Copy kafka client truststore
       copy:
-        src: "templates/internal/client/trust"
-        dest: "/opt/benchmark/internal.kafka.client.truststore.jks"
+        src: "templates/tls/kafka/client/trust"
+        dest: "/opt/benchmark/kafka.client.truststore.jks"
 
     - name: Install benchmark systemd service
       template:
@@ -701,16 +701,16 @@
   become: true
   tasks:
     - set_fact:
-        clusterId: "{{ lookup('ini', 'cluster.id type=properties file=zp-ccloud.properties') }}"
-        networkId: "{{ lookup('ini', 'network.id type=properties file=zp-ccloud.properties') }}"
-        awsRegion: "{{ lookup('ini', 'region type=properties file=zp-ccloud.properties') }}"
+        clusterId: "{{ lookup('ini', 'cluster.id type=properties file=zilla-ccloud.properties') }}"
+        networkId: "{{ lookup('ini', 'network.id type=properties file=zilla-ccloud.properties') }}"
+        awsRegion: "{{ lookup('ini', 'region type=properties file=zilla-ccloud.properties') }}"
     - name: Configure zilla engine directory
       file: path=/dev/shm/zilla state=directory owner=ec2-user group=ec2-user
     - name: Configure zilla service
       lineinfile:
          dest: /etc/systemd/system/zilla-plus.service
          regexp: '^ExecStart='
-         line: 'ExecStart=/opt/zilla/zilla start -v -Pzilla.engine.buffer.slot.capacity=65536 -Pzilla.zilla.binding.kafka.proxy.produce.version.max=1'
+         line: 'ExecStart=/opt/zilla/zilla start -v'
     - name: Configure zilla
       template:
         src: templates/zilla.yaml
@@ -730,24 +730,14 @@
         path: "/etc/zilla/zilla.yaml"
         regexp: "REGION"
         replace: "{{ awsRegion }}"
-    - name: Configure zilla keystore directory
-      file:
-        path: /etc/zilla/external/server
-        state: directory
-        recurse: yes
     - name: Configure zilla keystore
       copy:
-        src: templates/external/server/keys
-        dest: /etc/zilla/external/server/keys
-    - name: Configure zilla truststore directory
-      file:
-        path: /etc/zilla/internal/client
-        state: directory
-        recurse: yes
+        src: templates/tls/zilla/server/keys
+        dest: /etc/zilla/zilla.server.keytstore.jks
     - name: Configure zilla truststore
       copy:
-        src: templates/internal/client/trust
-        dest: /etc/zilla/internal/client/trust
+        src: templates/tls/kafka/client/trust
+        dest: /etc/zilla/kafka.client.truststore.jks
     - systemd:
         state: restarted
         daemon_reload: yes
