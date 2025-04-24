@@ -1,10 +1,10 @@
 # Aklvity deployment
 
 This README provides you with step-by-step instructions for running OpenMessaging Benchmark (OMB) with:
- - Zilla Plus Apache Kafka deployment.
- - Zilla Plus Confluent deployment.
- - Apache Kafka deployment.
- - Confluent deployment.
+- Zilla Plus Apache Kafka deployment.
+- Zilla Plus Confluent deployment.
+- Apache Kafka deployment.
+- Confluent deployment.
 
 ## 0) Prerequisites
 

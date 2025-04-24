@@ -197,11 +197,11 @@
         dest: "/opt/kafka/metrics.yml"
     - name: Copy keystore
       copy:
-        src: "templates/internal/server/keys"
+        src: "templates/tls/kafka/server/keys"
         dest: "/opt/kafka/config/kafka.server.keystore.jks"
     - name: Copy truststore
       copy:
-        src: "templates/internal/server/trust"
+        src: "templates/tls/kafka/server/trust"
         dest: "/opt/kafka/config/kafka.server.truststore.jks"
     - name: Set up controller
       template:
