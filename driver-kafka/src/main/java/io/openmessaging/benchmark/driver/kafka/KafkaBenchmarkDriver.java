@@ -205,7 +205,10 @@ public class KafkaBenchmarkDriver implements BenchmarkDriver {
         for (BenchmarkConsumer consumer : consumers) {
             consumer.close();
         }
-        admin.close();
+
+        if (admin != null) {
+            admin.close();
+        }
     }
 
     private static final ObjectMapper mapper =

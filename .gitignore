@@ -32,6 +32,14 @@ driver-kafka/deploy/confluent-deployment/templates/cert-signed
 driver-kafka/deploy/confluent-deployment/templates/kafka.client.truststore.jks
 driver-kafka/deploy/confluent-deployment/templates/kafka.server.keystore.jks
 driver-kafka/deploy/confluent-deployment/templates/kafka.server.truststore.jks
+
+# Aklivity deployment
+driver-kafka/deploy/aklivity-deployment/ansible-config.yaml
+driver-kafka/deploy/aklivity-deployment/terraform.tfvars
+driver-kafka/deploy/aklivity-deployment/zilla-ccloud.properties
+driver-kafka/deploy/aklivity-deployment/ccloud.properties
+driver-kafka/deploy/aklivity-deployment/hosts.ini
+
 workloads/confluent-blog-workloads-*
 results/*
 

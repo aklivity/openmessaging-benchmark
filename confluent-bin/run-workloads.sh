@@ -27,7 +27,7 @@ function restart_clients {
 
 trap "restart_clients" INT
 
-OMB_ENV=confluent-deployment
+OMB_ENV=aklivity-deployment
 [ -d ./driver-kafka/deploy/$OMB_ENV ] || usage "Should be executed in OMB root directory"
 
 AK_CC=$1
@@ -45,6 +45,12 @@ export TF_STATE="."
 CLIENT0_IP=$(terraform-inventory --list ./ | jq -rM '.client_0[]')
 
 case "$AK_CC" in
+  zpak)
+    DRIVER_PATH="driver-kafka/zilla-kafka-all-background-commit.yaml"
+    ;;
+  zpcc)
+    DRIVER_PATH="driver-kafka/zilla-ccloud-background-commit.yaml"
+    ;;
   ak)
     DRIVER_PATH="driver-kafka/ssl-kafka-all-background-commit.yaml"
     ;;
