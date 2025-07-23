@@ -1,23 +1,12 @@
-# Aklvity deployment
+# Aklivity deployment
 
 This README provides you with step-by-step instructions for running OpenMessaging Benchmark (OMB) with:
-- Zilla Plus Apache Kafka deployment.
-- Zilla Plus Confluent deployment.
+- Zilla Plus + Apache Kafka deployment.
+- Zilla Plus + Confluent Cloud deployment.
 - Apache Kafka deployment.
-- Confluent deployment.
+- Confluent Cloud deployment.
 
 ## 0) Prerequisites
-
-> :warning: The results reported in the blog were achieved with a Dedicated Confluent Cloud cluster in AWS with
-> VPC-peered connection to the OMB client VPC. Please follow the steps below to recreate that setup.
-> Once it is created, follow the guide below to create the OMB client VPC.
-> - [Details about Dedicated Cluster in Confluent Cloud](https://docs.confluent.io/cloud/current/clusters/cluster-types.html#types-dedicated-clusters)
-> - [Create VPC peering connection with Confluent Cloud in AWS](https://docs.confluent.io/cloud/current/networking/peering/aws-peering.html)
->
-> :warning: Confluent Cloud limits the rate of topic creation and deletion to prevent DDOS from Kafka client. In the real
-> world, this is necessary and is not an issue. However, this slows down the preparation stage when running OpenMessaging
-> Benchmark (OMB), especially when creating large number of topics. If you run this test against Confluent Cloud and the
-> preparation stage is too slow, Confluent Support can increase the limit for your cluster.
 
 1. Have an AWS account and set up your profile.
 2. Determine the region to run the test.
@@ -109,7 +98,18 @@ cp zilla-ccloud.properties.tpl zilla-ccloud.properties
 vi zilla-ccloud.properties
 ```
 
-7. Run Terraform
+```text
+Both `ccloud.properties` & `zilla-ccloud.properties` files are required to execute the `ansible-playbook`.
+```
+
+7. Export AWS Credential to create AWS specific resource.
+
+Export environment variables for
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_SESSION_TOKEN`
+
+8. Run Terraform
 
 If you haven't previously done so, run the following:
 
@@ -157,6 +157,14 @@ openssl s_client -connect pkc-xxxx.confluent.cloud:9092 -debug
 
 > If it prints the key and the connection details, then it has successfully established connection to the Confluent Cloud
 > cluster. Otherwise, please check if the network configurations (e.g. routing table, security group, etc) are correct.
+
+To connect to zilla plus node and review logs
+
+```bash
+ssh ec2-user@$(terraform-inventory --list . | jq -rM '.zilla_0[]')
+
+journalctl -u zilla-plus.service
+```
 
 1. Start from the root of OMB directory. If you are in `aklivity-deployment` directory, you need to do:
 
@@ -222,6 +230,10 @@ automatically download this and the output of the run into a directory under `re
 ## 5) Tear down your environments!
 
 If you use temporary credentials, remember you may need to refresh them first.
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_SESSION_TOKEN`
 
 From the same Terraform directory that you ran the `apply` command, run: `terraform destroy --auto-approve` and use the
 same owner tag value when prompted.
