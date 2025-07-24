@@ -23,3 +23,5 @@ num_instances = {
 gp3_size_gb       = 2000
 gp3_iops          = 12000
 gp3_throughput_mb = 640
+
+zilla_rootfs_gb   = 50
