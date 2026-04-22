@@ -1,27 +1,37 @@
 # OpenMessaging Benchmark Framework
 
-[![Build](https://github.com/openmessaging/benchmark/actions/workflows/pr-build-and-test.yml/badge.svg)](https://github.com/openmessaging/benchmark/actions/workflows/pr-build-and-test.yml)
-[![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
+This is Aklivity's fork of the [OpenMessaging Benchmark Framework](https://github.com/openmessaging/benchmark), used to benchmark [Zilla Plus](https://www.aklivity.io/products/zilla-plus) against Kafka vendors.
 
-**Notice：** We do not consider or plan to release any unilateral test results based on this standard. For reference, you can purchase server tests on the cloud by yourself.
+The OpenMessaging Benchmark Framework provides a consistent, reproducible way to measure the performance of messaging systems — covering throughput, latency, and resource usage under various workloads.
 
-This repository houses user-friendly, cloud-ready benchmarking suites for the following messaging platforms:
+## Aklivity Deployment
 
-* [Apache ActiveMQ Artemis](https://activemq.apache.org/components/artemis/)
-* [Apache Bookkeeper](https://bookkeeper.apache.org)
-* [Apache Kafka](https://kafka.apache.org)
-* [Apache Pulsar](https://pulsar.apache.org)
-* [Apache RocketMQ](https://rocketmq.apache.org)
-* Generic [JMS](https://javaee.github.io/jms-spec/)
-* [KoP (Kafka-on-Pulsar)](https://github.com/streamnative/kop)
-* [NATS JetStream](https://docs.nats.io/nats-concepts/jetstream)
-* [NATS Streaming (STAN)](https://docs.nats.io/legacy/stan/intro)
-* [NSQ](https://nsq.io)
-* [Pravega](https://pravega.io/)
-* [RabbitMQ](https://www.rabbitmq.com/)
-* [Redis](https://redis.com/)
+> **For full deployment and benchmarking instructions, see the [Aklivity Deployment Guide](driver-kafka/deploy/aklivity-deployment/README.md).**
 
-> More details could be found at the [official documentation](http://openmessaging.cloud/docs/benchmarks/).
+The guide covers end-to-end setup for the following configurations:
+
+| Configuration                 | Role                                                  |
+|-------------------------------|-------------------------------------------------------|
+| Zilla Plus + Apache Kafka     | Zilla Plus as Kafka proxy (Apache Kafka backend)      |
+| Zilla Plus + Confluent Cloud  | Zilla Plus as Kafka proxy (Confluent Cloud backend)   |
+| Apache Kafka                  | Direct connection baseline                            |
+| Confluent Cloud               | Direct connection baseline                            |
+
+> **Note on effective throughput:** As a bidirectional proxy, Zilla Plus handles both inbound client traffic and outbound broker traffic simultaneously, making its effective throughput 2x the reported workload rate. A benchmark targeting 100 MB/s means each Zilla instance is moving ~200 MB/s of aggregate network traffic. This context makes the latency results more notable.
+
+## How It Works
+
+A benchmark run follows these steps:
+
+1. **Build** — compile the project with Maven to produce the benchmark binary.
+2. **Provision** — use Terraform to spin up EC2 instances for the broker, Zilla Plus (where applicable), and benchmark clients.
+3. **Deploy** — use Ansible to configure and start all services on the provisioned instances.
+4. **Run workload** — execute a workload file that defines message size, topic count, partitions, producers, consumers, and target throughput.
+5. **Monitor** — observe live throughput and latency via Prometheus (available on port 9090 of the Prometheus instance).
+6. **Collect results** — the benchmark writes a JSON summary; the run script downloads it automatically into `results/`.
+7. **Tear down** — destroy all provisioned infrastructure with `terraform destroy`.
+
+See the [Aklivity Deployment Guide](driver-kafka/deploy/aklivity-deployment/README.md) for the full step-by-step instructions.
 
 ## Build
 
@@ -29,6 +39,10 @@ Requirements:
 
 * JDK 8
 * Maven 3.8.6+
+
+```bash
+mvn clean install -Dlicense.skip=true
+```
 
 Common build actions:
 
@@ -44,4 +58,4 @@ Common build actions:
 
 ## License
 
-Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0
+Licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
