@@ -6,6 +6,8 @@ This README provides you with step-by-step instructions for running OpenMessagin
 - Apache Kafka deployment.
 - Confluent Cloud deployment.
 
+> :lock: TLS is enabled for every test scenario above. The Apache Kafka broker listeners (`SSL`), the Zilla Plus proxy listeners, and the OMB client driver configs (`ssl-kafka-all-background-commit.yaml`, `zilla-kafka-all-background-commit.yaml`, `zilla-ccloud-background-commit.yaml`, `ccloud-background-commit.yaml`) all connect over `SSL`/`SASL_SSL`, so results reflect TLS-terminated traffic rather than plaintext.
+
 ## 0) Prerequisites
 
 1. Have an AWS account and set up your profile.
