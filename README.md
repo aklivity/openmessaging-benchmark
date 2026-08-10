@@ -10,12 +10,14 @@ The OpenMessaging Benchmark Framework provides a consistent, reproducible way to
 
 The guide covers end-to-end setup for the following configurations:
 
-| Configuration                 | Role                                                  |
-|-------------------------------|-------------------------------------------------------|
-| Zilla Plus + Apache Kafka     | Zilla Plus as Kafka proxy (Apache Kafka backend)      |
-| Zilla Plus + Confluent Cloud  | Zilla Plus as Kafka proxy (Confluent Cloud backend)   |
-| Apache Kafka                  | Direct connection baseline                            |
-| Confluent Cloud               | Direct connection baseline                            |
+| Configuration                | Role                                                | Transport        |
+|------------------------------|-----------------------------------------------------|------------------|
+| Zilla Plus + Apache Kafka    | Zilla Plus as Kafka proxy (Apache Kafka backend)    | TLS (`SSL`)      |
+| Zilla Plus + Confluent Cloud | Zilla Plus as Kafka proxy (Confluent Cloud backend) | TLS (`SASL_SSL`) |
+| Apache Kafka                 | Direct connection baseline                          | TLS (`SSL`)      |
+| Confluent Cloud              | Direct connection baseline                          | TLS (`SASL_SSL`) |
+
+Every configuration runs with TLS enabled end-to-end — broker listeners, Zilla Plus proxy listeners, and OMB client driver configs all connect over `SSL`/`SASL_SSL`, so results reflect TLS-terminated traffic, not plaintext.
 
 > **Note on effective throughput:** As a bidirectional proxy, Zilla Plus handles both inbound client traffic and outbound broker traffic simultaneously, making its effective throughput 2x the reported workload rate. A benchmark targeting 100 MB/s means each Zilla instance is moving ~200 MB/s of aggregate network traffic. This context makes the latency results more notable.
 

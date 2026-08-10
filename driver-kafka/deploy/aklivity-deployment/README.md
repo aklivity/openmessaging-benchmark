@@ -1,10 +1,15 @@
 # Aklivity deployment
 
 This README provides you with step-by-step instructions for running OpenMessaging Benchmark (OMB) with:
-- Zilla Plus + Apache Kafka deployment.
-- Zilla Plus + Confluent Cloud deployment.
-- Apache Kafka deployment.
-- Confluent Cloud deployment.
+
+| Configuration                | Transport        | Client driver config                     |
+|------------------------------|------------------|------------------------------------------|
+| Zilla Plus + Apache Kafka    | TLS (`SSL`)      | `zilla-kafka-all-background-commit.yaml` |
+| Zilla Plus + Confluent Cloud | TLS (`SASL_SSL`) | `zilla-ccloud-background-commit.yaml`    |
+| Apache Kafka                 | TLS (`SSL`)      | `ssl-kafka-all-background-commit.yaml`   |
+| Confluent Cloud              | TLS (`SASL_SSL`) | `ccloud-background-commit.yaml`          |
+
+Every scenario runs with TLS enabled end-to-end — the Apache Kafka broker listeners, the Zilla Plus proxy listeners, and the OMB client driver configs above all connect over `SSL`/`SASL_SSL`, so results reflect TLS-terminated traffic, not plaintext.
 
 ## 0) Prerequisites
 
