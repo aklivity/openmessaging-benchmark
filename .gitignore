@@ -6,6 +6,7 @@ target
 /.metadata/
 *.pyc
 *.svg
+*.png
 core/*.json
 *.json
 *.retry
@@ -18,6 +19,7 @@ core/*.json
 **/*.lock.info
 .DS_Store
 .factorypath
+*.log
 
 # Confluent deployment
 driver-kafka/deploy/confluent-deployment/ansible-config.yaml
@@ -46,3 +48,6 @@ results/*
 # IntelliJ artifacts
 .idea/
 *.iml
+
+# Debug
+incident-diagnostics/*

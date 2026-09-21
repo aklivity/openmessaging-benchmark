@@ -27,4 +27,12 @@ fi
 JVM_MEM="${HEAP_OPTS} -XX:+UseG1GC"
 JVM_GC_LOG=" -XX:+PrintGCDetails -XX:+PrintGCApplicationStoppedTime  -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=64m  -Xloggc:/dev/shm/benchmark-client-gc_%p.log"
 
-exec java -server -cp $CLASSPATH $JVM_MEM io.openmessaging.benchmark.worker.BenchmarkWorker $*
+# JDK 17, not the default JDK 25: Kafka's SASL/PLAIN client code still calls the now-removed
+# Subject.getSubject(AccessControlContext), which throws UnsupportedOperationException on JDK 25
+# (Security Manager permanently removed) -- needed once a scenario's driver enables SASL.
+JAVA_BIN=java
+if [ -x /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java ]; then
+    JAVA_BIN=/usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
+fi
+
+exec $JAVA_BIN -server -cp $CLASSPATH $JVM_MEM io.openmessaging.benchmark.worker.BenchmarkWorker $*

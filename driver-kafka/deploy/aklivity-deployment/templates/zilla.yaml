@@ -42,6 +42,7 @@ bindings:
         port: 9093
       internal:
         host: kafka-####.internal.net
+        default: kafka-1000.internal.net
         port: 9093
     exit: tls_client
   tls_client:
@@ -56,6 +57,10 @@ bindings:
   tcp_client:
     type: tcp
     kind: client
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout
 
 
 ---
@@ -105,4 +110,100 @@ bindings:
   tcp_client:
     type: tcp
     kind: client
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout
 
+---
+# See driver-kafka/deploy/aklivity-deployment/README.md's "Zilla Plus + Apache Kafka (encrypted)"
+# section for what this scenario is.
+name: apache-kafka-encrypt
+vaults:
+  external:
+    type: filesystem
+    options:
+      keys:
+        store: zilla.server.keytstore.jks
+        type: pkcs12
+        password: generated
+  internal:
+    type: filesystem
+    options:
+      trust:
+        store: kafka.client.truststore.jks
+        type: pkcs12
+        password: generated
+  secrets:
+    type: filesystem
+    options:
+      secrets:
+        store: zilla.server.secrets
+        type: pkcs12
+        password: generated
+        entries:
+          payload-key: payload-key
+guards:
+  inline_guard:
+    type: inline
+bindings:
+  tcp_server_encrypt:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 9095
+    exit: tls_server_encrypt
+  tls_server_encrypt:
+    type: tls
+    kind: server
+    vault: external
+    options:
+      keys:
+      - external.net
+    exit: kafka_proxy_encrypt
+  kafka_proxy_encrypt:
+    type: kafka-proxy
+    kind: proxy
+    options:
+      topics:
+        - name: "*"
+          value:
+            model: bytes
+            transforms:
+              guarded:
+                inline_guard: []
+              encryption:
+                vault:
+                  secrets:
+                    - payload-key
+      external:
+        host: kafka-####.external.net
+        default: kafka.external.net
+        port: 9095
+        authorization:
+          inline_guard:
+            mechanism: plain
+            pattern: "{username}:{password}"
+      internal:
+        host: kafka-####.internal.net
+        default: kafka-1000.internal.net
+        port: 9093
+    exit: tls_client_encrypt
+  tls_client_encrypt:
+    type: tls
+    kind: client
+    vault: internal
+    options:
+      trust:
+      - serverca
+      trustcacerts: true
+    exit: tcp_client_encrypt
+  tcp_client_encrypt:
+    type: tcp
+    kind: client
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout

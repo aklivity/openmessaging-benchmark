@@ -2,12 +2,13 @@
 
 This README provides you with step-by-step instructions for running OpenMessaging Benchmark (OMB) with:
 
-| Configuration                | Transport        | Client driver config                     |
-|------------------------------|------------------|------------------------------------------|
-| Zilla Plus + Apache Kafka    | TLS (`SSL`)      | `zilla-kafka-all-background-commit.yaml` |
-| Zilla Plus + Confluent Cloud | TLS (`SASL_SSL`) | `zilla-ccloud-background-commit.yaml`    |
-| Apache Kafka                 | TLS (`SSL`)      | `ssl-kafka-all-background-commit.yaml`   |
-| Confluent Cloud              | TLS (`SASL_SSL`) | `ccloud-background-commit.yaml`          |
+|             Configuration             |                  Transport                   |             Client driver config             |
+|---------------------------------------|----------------------------------------------|----------------------------------------------|
+| Zilla Plus + Apache Kafka             | TLS (`SSL`)                                  | `zilla-kafka-all-background-commit.yaml`     |
+| Zilla Plus + Apache Kafka (encrypted) | TLS (`SSL`) + field-level payload encryption | `zilla-encrypt-kafka-background-commit.yaml` |
+| Zilla Plus + Confluent Cloud          | TLS (`SASL_SSL`)                             | `zilla-ccloud-background-commit.yaml`        |
+| Apache Kafka                          | TLS (`SSL`)                                  | `ssl-kafka-all-background-commit.yaml`       |
+| Confluent Cloud                       | TLS (`SASL_SSL`)                             | `ccloud-background-commit.yaml`              |
 
 Every scenario runs with TLS enabled end-to-end — the Apache Kafka broker listeners, the Zilla Plus proxy listeners, and the OMB client driver configs above all connect over `SSL`/`SASL_SSL`, so results reflect TLS-terminated traffic, not plaintext.
 
@@ -59,6 +60,12 @@ cp 2cku/* .
 vi terraform.tfvars.tpl
 ```
 
+### Zilla Plus + Apache Kafka (encrypted) scenario
+
+This scenario adds a second Zilla Plus listener (port `9095`, `apache-kafka-encrypt` in `templates/zilla.yaml`) that encrypts the whole message payload, backed by a local `filesystem` vault — no external KMS or credentials required.
+
+`templates/zilla.yaml` matches topics for this scenario with a `test-topic-*` wildcard, so it covers whatever topics the workload creates regardless of count — this must still match the `topicPrefix` (`test-topic`) in `zilla-encrypt-kafka-background-commit.yaml`.
+
 3. Then edit `terraform.tfvars.tpl` the following variable values.
 
 ```text
@@ -73,13 +80,13 @@ Example values:
 
 ```text
 region          = "us-east-1"
-ami             = "ami-0e449927258d45bc4"
+ami             = "ami-077f9230bb25f6e73"
 profile         = "default"
 subnet_cidrs    = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
 azs             = ["us-east-1a", "us-east-1b", "us-east-1c"]
 ```
 
-> :warning: Please use ami `ami-0e449927258d45bc4` in `us-east-1` to reproduce the result.
+> :warning: Please use ami `ami-077f9230bb25f6e73` in `us-east-1` to reproduce the result.
 
 4. Rename `terraform.tfvars.tpl` to `terraform.tfvars` when you have filled in the details.
 
@@ -206,6 +213,12 @@ cd ../../..
 
 ```bash
 ./confluent-bin/run-workloads.sh zpak workloads/confluent-blog-workloads-2cku-1p-1c-2Kb-45topic-200part-100MBps.yaml
+```
+
+- To run against Zilla Plus + Apache Kafka (encrypted) scenario:
+
+```bash
+./confluent-bin/run-workloads.sh zpak-encrypt workloads/confluent-blog-workloads-2cku-1p-1c-2Kb-45topic-200part-100MBps.yaml
 ```
 
 - To run against Zilla Plus + Confluent Cloud:

@@ -1,0 +1,47 @@
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: Kafka
+driverClass: io.openmessaging.benchmark.driver.kafka.KafkaBenchmarkDriver
+
+# Same as zilla-kafka-all-background-commit.yaml, but for the apache-kafka-encrypt scenario
+# (port 9095). Keep the "zilla-encrypt-kafka-*.yaml" filename prefix - deploy.yaml matches on
+# it to rewrite bootstrap.servers with the right port. See the deployment README.
+
+# Kafka client-specific configuration
+replicationFactor: 3
+reset: true
+skipCreateTopic: false
+topicPrefix: test-topic
+
+topicConfig: |
+  min.insync.replicas=2
+
+commonConfig: |
+  bootstrap.servers=SASL_SSL://zilla.external.net:9095
+  security.protocol=SASL_SSL
+  sasl.mechanism=PLAIN
+  sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="benchmark" password="benchmark";
+  ssl.endpoint.identification.algorithm=
+  ssl.truststore.location=/opt/benchmark/zilla.client.truststore.jks
+  ssl.truststore.password=generated
+  request.timeout.ms=300000
+
+producerConfig: |
+  acks=all
+  linger.ms=10
+
+consumerConfig: |
+  auto.offset.reset=earliest
+  enable.auto.commit=true
