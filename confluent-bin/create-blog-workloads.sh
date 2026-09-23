@@ -22,10 +22,10 @@ function generate_workload {
   TOPIC_COUNT=$2
   PART_COUNT=$3
   THROUGHPUT_MBPS=$4
+  MSG_SIZE=${5:-2}   # Kb, defaults to 2
 
   PRODUCER_PER_TOPIC=1
   CONSUMER_PER_GROUP=1
-  MSG_SIZE=2   # Kb
 
   PRODUCER_RATE=$(( ($THROUGHPUT_MBPS * 1024 * 1024) / ($MSG_SIZE * 1024)  ))
 
@@ -51,7 +51,7 @@ EOF
 
 }
 
-# generate_workload {CKU} {TOPIC_COUNT} {PARTITION_COUNT_PER_TOPIC} {THROUGHPUT_MBPS}
+# generate_workload {CKU} {TOPIC_COUNT} {PARTITION_COUNT_PER_TOPIC} {THROUGHPUT_MBPS} [{MSG_SIZE_KB}]
 
 # 2 CKU
 ## Variable throughput
@@ -62,6 +62,9 @@ generate_workload 2 45 200 100
 ## Variable partition count
 generate_workload 2 45 40 100
 generate_workload 2 45 100 100
+
+## Variable message size (same 51200 msg/s producer rate as the 2Kb/100MBps workload)
+generate_workload 2 45 200 50 1
 
 # 28 CKU
 ## Variable throughput
