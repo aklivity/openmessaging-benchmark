@@ -20,7 +20,6 @@ import io.openmessaging.benchmark.utils.PaddingDecimalFormat;
 import io.openmessaging.benchmark.utils.RandomGenerator;
 import io.openmessaging.benchmark.utils.Timer;
 import io.openmessaging.benchmark.utils.payload.FilePayloadReader;
-import io.openmessaging.benchmark.utils.payload.PayloadReader;
 import io.openmessaging.benchmark.worker.Worker;
 import io.openmessaging.benchmark.worker.commands.ConsumerAssignment;
 import io.openmessaging.benchmark.worker.commands.CountersStats;
@@ -76,9 +75,14 @@ public class WorkloadGenerator implements AutoCloseable {
         createConsumers(topics);
         createProducers(topics);
 
+        // Built before the readiness probe so the probe can send a representative message. A fixed
+        // dummy payload is rejected outright by any schema-validating broker or proxy in the path,
+        // which strands the probe loop at Sent: 0 until it times out.
+        final List<byte[]> payloadData = buildPayloadData();
+
         // Sleep for 1 minute before starting to send probe requests
         Thread.sleep(60000);
-        ensureTopicsAreReady();
+        ensureTopicsAreReady(payloadData.get(0));
 
         if (workload.producerRate > 0) {
             targetPublishRate = workload.producerRate;
@@ -97,29 +101,10 @@ public class WorkloadGenerator implements AutoCloseable {
                     });
         }
 
-        final PayloadReader payloadReader = new FilePayloadReader(workload.messageSize);
-
         ProducerWorkAssignment producerWorkAssignment = new ProducerWorkAssignment();
         producerWorkAssignment.keyDistributorType = workload.keyDistributor;
         producerWorkAssignment.publishRate = targetPublishRate;
-        producerWorkAssignment.payloadData = new ArrayList<>();
-
-        if (workload.useRandomizedPayloads) {
-            // create messages that are part random and part zeros
-            // better for testing effects of compression
-            Random r = new Random();
-            int randomBytes = (int) (workload.messageSize * workload.randomBytesRatio);
-            int zerodBytes = workload.messageSize - randomBytes;
-            for (int i = 0; i < workload.randomizedPayloadPoolSize; i++) {
-                byte[] randArray = new byte[randomBytes];
-                r.nextBytes(randArray);
-                byte[] zerodArray = new byte[zerodBytes];
-                byte[] combined = ArrayUtils.addAll(randArray, zerodArray);
-                producerWorkAssignment.payloadData.add(combined);
-            }
-        } else {
-            producerWorkAssignment.payloadData.add(payloadReader.load(workload.payloadFile));
-        }
+        producerWorkAssignment.payloadData = payloadData;
 
         worker.startLoad(producerWorkAssignment);
 
@@ -149,7 +134,30 @@ public class WorkloadGenerator implements AutoCloseable {
         return result;
     }
 
-    private void ensureTopicsAreReady() throws IOException {
+    private List<byte[]> buildPayloadData() {
+        List<byte[]> payloadData = new ArrayList<>();
+
+        if (workload.useRandomizedPayloads) {
+            // create messages that are part random and part zeros
+            // better for testing effects of compression
+            Random r = new Random();
+            int randomBytes = (int) (workload.messageSize * workload.randomBytesRatio);
+            int zerodBytes = workload.messageSize - randomBytes;
+            for (int i = 0; i < workload.randomizedPayloadPoolSize; i++) {
+                byte[] randArray = new byte[randomBytes];
+                r.nextBytes(randArray);
+                byte[] zerodArray = new byte[zerodBytes];
+                byte[] combined = ArrayUtils.addAll(randArray, zerodArray);
+                payloadData.add(combined);
+            }
+        } else {
+            payloadData.add(new FilePayloadReader(workload.messageSize).load(workload.payloadFile));
+        }
+
+        return payloadData;
+    }
+
+    private void ensureTopicsAreReady(byte[] probePayload) throws IOException {
         log.info("Waiting for consumers to be ready");
         // This is work around the fact that there's no way to have a consumer ready in Kafka without
         // first publishing
@@ -158,7 +166,7 @@ public class WorkloadGenerator implements AutoCloseable {
         int expectedMessages = workload.topics * workload.subscriptionsPerTopic;
 
         // In this case we just publish 1 message and then wait for consumers to receive the data
-        worker.probeProducers();
+        worker.probeProducers(probePayload);
 
         long start = System.currentTimeMillis();
         long end = start + 600 * 1000;

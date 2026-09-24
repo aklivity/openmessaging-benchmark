@@ -152,6 +152,7 @@
         sslbootstrapServers: "{% set servers = [] %}{% for i in range(0, groups['kafka'] | length) %}{% set _ = servers.append('kafka-' + (i + 1000)|string + '.internal.net:9093') %}{% endfor %}{{ servers|join(',') }}"
         zillaKafkaBootstrapServers: "{% set servers = [] %}{% for i in range(0, groups['kafka'] | length) %}{% set _ = servers.append('kafka-' + (i + 1000)|string + '.external.net:9093') %}{% endfor %}{{ servers|join(',') }}"
         zillaEncryptKafkaBootstrapServers: "{% set servers = [] %}{% for i in range(0, groups['kafka'] | length) %}{% set _ = servers.append('kafka-' + (i + 1000)|string + '.external.net:9095') %}{% endfor %}{{ servers|join(',') }}"
+        zillaStructuredEncryptKafkaBootstrapServers: "{% set servers = [] %}{% for i in range(0, groups['kafka'] | length) %}{% set _ = servers.append('kafka-' + (i + 1000)|string + '.external.net:9096') %}{% endfor %}{{ servers|join(',') }}"
         zillaCcloudBootstrapServer: "{{ lookup('ini', 'bootstrap.servers type=properties file=zilla-ccloud.properties') }}"
         zillaCcloudJaasConfig: "{{ lookup('ini', 'sasl.jaas.config type=properties file=zilla-ccloud.properties') }}"
         ccloudBootstrapServer: "{{ lookup('ini', 'bootstrap.servers type=properties file=ccloud.properties') }}"
@@ -165,6 +166,7 @@
           - "SSL Bootstrap servers (SSL):               SSL://{{ sslbootstrapServers }}"
           - "Zilla PLus Kafka Bootstrap servers (SSL):  SSL://{{ zillaKafkaBootstrapServers }}"
           - "Zilla Plus Kafka Encrypt Bootstrap servers: SSL://{{ zillaEncryptKafkaBootstrapServers }}"
+          - "Zilla Plus Kafka Structured-Field Encrypt Bootstrap servers: SSL://{{ zillaStructuredEncryptKafkaBootstrapServers }}"
           - "Zilla Plus CCloud Bootstrap servers:       {{ zillaCcloudBootstrapServer }}"
           - "Zilla Plus CCloud JAAS config:             {{ zillaCcloudJaasConfig }}"
           - "CCloud Bootstrap servers:                  {{ ccloudBootstrapServer }}"
@@ -376,6 +378,18 @@
         regexp: "^  bootstrap.servers="
         line: "  bootstrap.servers={{ zillaEncryptKafkaBootstrapServers }}"
       with_items: "{{ zilla_encrypt_kafka_drivers_list.stdout_lines }}"
+
+    # Set up Zilla Plus Kafka structured-field encrypt driver config
+    - name: Get list of zilla structured-field encrypt driver config files
+      raw: ls -1 /opt/benchmark/driver-kafka/zilla-structured-encrypt-kafka-*.yaml
+      register: zilla_structured_encrypt_kafka_drivers_list
+
+    - name: Configure Zilla Plus Kafka Structured-Field Encrypt Bootstrap Servers
+      lineinfile:
+        dest: "{{ item }}"
+        regexp: "^  bootstrap.servers="
+        line: "  bootstrap.servers={{ zillaStructuredEncryptKafkaBootstrapServers }}"
+      with_items: "{{ zilla_structured_encrypt_kafka_drivers_list.stdout_lines }}"
 
     # Set up Zilla Plus CCloud driver config
     - name: Get list of Zilla Plus ccloud driver config files

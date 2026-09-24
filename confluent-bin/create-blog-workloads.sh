@@ -23,6 +23,7 @@ function generate_workload {
   PART_COUNT=$3
   THROUGHPUT_MBPS=$4
   MSG_SIZE=${5:-2}   # Kb, defaults to 2
+  PAYLOAD=${6:-payload/payload-${MSG_SIZE}Kb.data}
 
   PRODUCER_PER_TOPIC=1
   CONSUMER_PER_GROUP=1
@@ -39,7 +40,7 @@ topics: $TOPIC_COUNT
 partitionsPerTopic: $PART_COUNT
 messageSize: $(( $MSG_SIZE * 1024 ))
 keyDistributor: "NO_KEY"
-payloadFile: "payload/payload-${MSG_SIZE}Kb.data"
+payloadFile: "$PAYLOAD"
 subscriptionsPerTopic: 3
 consumerPerSubscription: $CONSUMER_PER_GROUP
 producersPerTopic: $PRODUCER_PER_TOPIC
@@ -51,7 +52,11 @@ EOF
 
 }
 
-# generate_workload {CKU} {TOPIC_COUNT} {PARTITION_COUNT_PER_TOPIC} {THROUGHPUT_MBPS} [{MSG_SIZE_KB}]
+# generate_workload {CKU} {TOPIC_COUNT} {PARTITION_COUNT_PER_TOPIC} {THROUGHPUT_MBPS} [{MSG_SIZE_KB}] [{PAYLOAD_FILE}]
+#
+# PAYLOAD_FILE defaults to the opaque payload/payload-{MSG_SIZE}Kb.data. Override it only when a
+# scenario validates the message body: the structured-field encrypt listener runs model: json and
+# rejects anything that is not parseable JSON matching its catalog subject.
 
 # 2 CKU
 ## Variable throughput
@@ -65,6 +70,11 @@ generate_workload 2 45 100 100
 
 ## Variable message size (same 51200 msg/s producer rate as the 2Kb/100MBps workload)
 generate_workload 2 45 200 50 1
+
+## JSON payload, for the scenarios that validate the message body (zpak-structured-field-encrypt).
+## zpak-encrypt is model: bytes and ignores content, so the same file serves both and keeps them
+## rate- and payload-matched.
+generate_workload 2 45 200 24 1 payload/payload-1Kb-event.json
 
 # 28 CKU
 ## Variable throughput
