@@ -75,6 +75,7 @@ generate_workload 2 45 200 50 1
 ## zpak-encrypt is model: bytes and ignores content, so the same file serves both and keeps them
 ## rate- and payload-matched.
 generate_workload 2 45 200 24 1 payload/payload-1Kb-event.json
+generate_workload 2 45 200 20 1 payload/payload-1Kb-event.json
 
 # 28 CKU
 ## Variable throughput
