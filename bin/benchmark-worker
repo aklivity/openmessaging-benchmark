@@ -27,11 +27,6 @@ fi
 JVM_MEM="${HEAP_OPTS} -XX:+UseG1GC"
 JVM_GC_LOG=" -XX:+PrintGCDetails -XX:+PrintGCApplicationStoppedTime  -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=64m  -Xloggc:/dev/shm/benchmark-client-gc_%p.log"
 
-# JDK 17, not the default JDK 25: Kafka's SASL/PLAIN client code still calls the now-removed
-# Subject.getSubject(AccessControlContext), which throws UnsupportedOperationException on JDK 25
-# (Security Manager permanently removed) -- needed once a scenario's driver enables SASL.
-# JAVA_HOME wins when set (the systemd unit sets it); the explicit path is the fallback for
-# direct invocation, e.g. confluent-bin/run-workloads.sh over ssh.
 JAVA_BIN=java
 if [ -n "$JAVA_HOME" ] && [ -x "$JAVA_HOME/bin/java" ]; then
     JAVA_BIN="$JAVA_HOME/bin/java"

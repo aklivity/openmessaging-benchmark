@@ -62,7 +62,6 @@ telemetry:
     stdout_logs_exporter:
       type: stdout
 
-
 ---
 name: confluent-cloud
 vaults:
@@ -116,8 +115,6 @@ telemetry:
       type: stdout
 
 ---
-# See driver-kafka/deploy/aklivity-deployment/README.md's "Zilla Plus + Apache Kafka (encrypted)"
-# section for what this scenario is.
 name: apache-kafka-encrypt
 vaults:
   external:
@@ -209,8 +206,6 @@ telemetry:
       type: stdout
 
 ---
-# See driver-kafka/deploy/aklivity-deployment/README.md's "Zilla Plus + Apache Kafka (encrypted)"
-# section for what this scenario is.
 name: apache-kafka-structured-field-encrypt
 catalogs:
   my_catalog:

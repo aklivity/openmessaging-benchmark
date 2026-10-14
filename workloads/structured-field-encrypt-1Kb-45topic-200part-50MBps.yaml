@@ -1,7 +1,3 @@
-# Structured-field encryption workload. The 9096 listener runs model: json against the
-# catalog subject test-topic-value, so the payload must be valid JSON matching that schema -
-# payload-1Kb-event.json carries id/status/ssn, with ssn tagged x-kind: pii-encrypt.
-# Same shape and rate as the whole-payload encrypted 1Kb run, for a like-for-like comparison.
 name: structured-field-encrypt-1Kb-45topic-200part-50MBps
 
 topics: 45

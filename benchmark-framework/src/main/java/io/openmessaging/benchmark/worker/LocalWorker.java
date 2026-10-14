@@ -193,8 +193,6 @@ public class LocalWorker implements Worker, ConsumerCallback {
                                 .thenRun(stats::recordMessageSent)
                                 .exceptionally(
                                         t -> {
-                                            // without this the failure is invisible: the readiness loop just
-                                            // reports Sent: 0 until it times out ten minutes later
                                             log.error("Failed to send probe message", t);
                                             return null;
                                         }));

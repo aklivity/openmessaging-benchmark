@@ -75,9 +75,6 @@ public class WorkloadGenerator implements AutoCloseable {
         createConsumers(topics);
         createProducers(topics);
 
-        // Built before the readiness probe so the probe can send a representative message. A fixed
-        // dummy payload is rejected outright by any schema-validating broker or proxy in the path,
-        // which strands the probe loop at Sent: 0 until it times out.
         final List<byte[]> payloadData = buildPayloadData();
 
         // Sleep for 1 minute before starting to send probe requests
@@ -138,8 +135,6 @@ public class WorkloadGenerator implements AutoCloseable {
         List<byte[]> payloadData = new ArrayList<>();
 
         if (workload.useRandomizedPayloads) {
-            // create messages that are part random and part zeros
-            // better for testing effects of compression
             Random r = new Random();
             int randomBytes = (int) (workload.messageSize * workload.randomBytesRatio);
             int zerodBytes = workload.messageSize - randomBytes;

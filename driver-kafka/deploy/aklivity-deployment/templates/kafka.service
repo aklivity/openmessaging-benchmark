@@ -4,10 +4,6 @@ After=network.target
 
 [Service]
 ExecStart=/opt/kafka/bin/kafka-server-start.sh config/server.properties
-# Pinned explicitly rather than relying on the system default `java`: the AMI's default JDK
-# has drifted to a version newer than Kafka 3.6.0's JVM flags below support (see
-# UseBiasedLocking, removed in later JDKs), and ansible only installs 17 alongside whatever
-# the AMI already defaults to, it doesn't change that default.
 Environment=JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto.x86_64
 Environment=JMX_PORT=9999
 Environment="KAFKA_OPTS=-javaagent:/opt/kafka/jmx_prometheus_javaagent-0.13.0.jar=8080:/opt/kafka/metrics.yml"

@@ -4,10 +4,6 @@ After=network.target
 
 [Service]
 ExecStart=/opt/benchmark/bin/benchmark-worker
-# Pinned explicitly rather than relying on the system default `java`: Kafka 3.2.1's SASL/PLAIN
-# client calls Subject.getSubject(AccessControlContext), removed in JDK 24+ (Security Manager
-# permanently disabled), which throws UnsupportedOperationException. Ansible installs 17
-# alongside the AMI default, it does not change that default.
 Environment=JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto.x86_64
 WorkingDirectory=/opt/benchmark
 RestartSec=1s

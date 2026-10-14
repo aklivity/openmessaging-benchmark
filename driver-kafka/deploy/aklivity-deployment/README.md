@@ -60,8 +60,6 @@ cp 2cku/* .
 vi terraform.tfvars.tpl
 ```
 
-### Zilla Plus + Apache Kafka (encrypted) scenario
-
 This scenario adds a second Zilla Plus listener (port `9095`, `apache-kafka-encrypt` in `templates/zilla.yaml`) that encrypts the whole message payload, backed by a local `filesystem` vault — no external KMS or credentials required.
 
 `templates/zilla.yaml` matches topics for this scenario with a `test-topic-*` wildcard, so it covers whatever topics the workload creates regardless of count — this must still match the `topicPrefix` (`test-topic`) in `zilla-encrypt-kafka-background-commit.yaml`.

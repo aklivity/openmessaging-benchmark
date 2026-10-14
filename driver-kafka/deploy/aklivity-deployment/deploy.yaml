@@ -29,10 +29,6 @@
     #     state: unmounted
     #   with_items:
     #     - { path: "/mnt/data-1", src: "/dev/nvme1n1" }
-    # NVMe device names on Nitro instances aren't guaranteed stable across boots, so the data
-    # disk is resolved by excluding the root disk rather than hardcoding e.g. /dev/nvme1n1 -
-    # otherwise a reboot can land the root filesystem on that path and this task tries to
-    # reformat it (or worse, remounts it under an fstab entry that fails on the next boot).
     - name: Determine the root disk
       shell: lsblk -no pkname "$(findmnt -n -o SOURCE /)"
       register: root_disk
@@ -45,10 +41,6 @@
       filesystem:
         fstype: xfs
         dev: "/dev/{{ data_disk.stdout }}"
-    # Mounted by filesystem UUID rather than device path: this same playbook reboots these
-    # hosts unconditionally later on, and NVMe device names on Nitro instances aren't
-    # guaranteed stable across reboots, so a path-based fstab entry can silently point at the
-    # wrong (or a nonexistent) device after any future reboot and fail to mount at boot.
     - name: Determine the data disk's filesystem UUID
       command: "blkid -s UUID -o value /dev/{{ data_disk.stdout }}"
       register: data_disk_uuid
@@ -175,9 +167,6 @@
       stat:
         path: /opt/kafka/bin/kafka-server-start.sh
       register: kafka_installed
-    # Fetched once to the control machine rather than once per host (get_url's own
-    # conditional-GET skips re-fetching when the local copy is already current), so N hosts
-    # no longer mean N independent downloads from archive.apache.org.
     - name: Download Kafka tarball to the control machine
       get_url:
         url: "http://archive.apache.org/dist/kafka/{{ kafkaVersion }}/kafka_2.13-{{ kafkaVersion }}.tgz"
@@ -255,7 +244,6 @@
       shell: cd /opt/sysstat && ./configure && make -j `nproc` && sudo make install
     - name: Format Controller log.dirs
       shell: /opt/kafka/bin/kafka-storage.sh format -t {{ kafkaUuid }} --ignore-formatted -c /opt/kafka/config/controller.properties
-
 
 - name: Setup Kafka
   hosts: kafka
@@ -367,7 +355,6 @@
         line: "  bootstrap.servers={{ zillaKafkaBootstrapServers }}"
       with_items: "{{ zilla_kafka_drivers_list.stdout_lines }}"
 
-    # Set up Zilla Plus Kafka Encrypt driver config
     - name: Get list of zilla encrypt driver config files
       raw: ls -1 /opt/benchmark/driver-kafka/zilla-encrypt-kafka-*.yaml
       register: zilla_encrypt_kafka_drivers_list
@@ -379,7 +366,6 @@
         line: "  bootstrap.servers={{ zillaEncryptKafkaBootstrapServers }}"
       with_items: "{{ zilla_encrypt_kafka_drivers_list.stdout_lines }}"
 
-    # Set up Zilla Plus Kafka structured-field encrypt driver config
     - name: Get list of zilla structured-field encrypt driver config files
       raw: ls -1 /opt/benchmark/driver-kafka/zilla-structured-encrypt-kafka-*.yaml
       register: zilla_structured_encrypt_kafka_drivers_list

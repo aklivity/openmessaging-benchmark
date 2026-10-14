@@ -50,5 +50,4 @@ charts/*
 .idea/
 *.iml
 
-# Debug
 incident-diagnostics/*
