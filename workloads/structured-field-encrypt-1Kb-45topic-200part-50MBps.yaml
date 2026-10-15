@@ -1,0 +1,17 @@
+name: structured-field-encrypt-1Kb-45topic-200part-50MBps
+
+topics: 45
+partitionsPerTopic: 200
+messageSize: 1024
+payloadFile: "payload/payload-1Kb-event.json"
+keyDistributor: "NO_KEY"
+
+producersPerTopic: 1
+subscriptionsPerTopic: 3
+consumerPerSubscription: 1
+
+producerRate: 51200
+consumerBacklogSizeGB: 0
+
+warmupDurationMinutes: 30
+testDurationMinutes: 60

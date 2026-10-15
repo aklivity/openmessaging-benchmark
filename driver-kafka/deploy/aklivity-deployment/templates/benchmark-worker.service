@@ -4,6 +4,7 @@ After=network.target
 
 [Service]
 ExecStart=/opt/benchmark/bin/benchmark-worker
+Environment=JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto.x86_64
 WorkingDirectory=/opt/benchmark
 RestartSec=1s
 Restart=on-failure

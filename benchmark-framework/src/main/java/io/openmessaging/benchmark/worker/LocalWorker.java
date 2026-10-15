@@ -185,10 +185,17 @@ public class LocalWorker implements Worker, ConsumerCallback {
     }
 
     @Override
-    public void probeProducers() throws IOException {
+    public void probeProducers(byte[] payload) throws IOException {
         producers.forEach(
                 producer ->
-                        producer.sendAsync(Optional.of("key"), new byte[10]).thenRun(stats::recordMessageSent));
+                        producer
+                                .sendAsync(Optional.of("key"), payload)
+                                .thenRun(stats::recordMessageSent)
+                                .exceptionally(
+                                        t -> {
+                                            log.error("Failed to send probe message", t);
+                                            return null;
+                                        }));
     }
 
     private void submitProducersToExecutor(

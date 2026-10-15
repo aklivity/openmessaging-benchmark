@@ -136,12 +136,12 @@ public class DistributedWorkersEnsemble implements Worker {
     }
 
     @Override
-    public void probeProducers() throws IOException {
+    public void probeProducers(byte[] payload) throws IOException {
         producerWorkers.parallelStream()
                 .forEach(
                         w -> {
                             try {
-                                w.probeProducers();
+                                w.probeProducers(payload);
                             } catch (IOException e) {
                                 throw new RuntimeException(e);
                             }

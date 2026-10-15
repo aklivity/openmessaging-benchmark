@@ -16,7 +16,7 @@
 
 function usage {
   echo $1
-  echo "Usage: run-workloads.sh {ak|cc} workloads/x.yaml"
+  echo "Usage: run-workloads.sh {ak|cc|zpak|zpak-encrypt|zpak-structured-field-encrypt|zpcc} workloads/x.yaml"
   exit 1
 }
 
@@ -47,6 +47,12 @@ CLIENT0_IP=$(terraform-inventory --list ./ | jq -rM '.client_0[]')
 case "$AK_CC" in
   zpak)
     DRIVER_PATH="driver-kafka/zilla-kafka-all-background-commit.yaml"
+    ;;
+  zpak-encrypt)
+    DRIVER_PATH="driver-kafka/zilla-encrypt-kafka-background-commit.yaml"
+    ;;
+  zpak-structured-field-encrypt)
+    DRIVER_PATH="driver-kafka/zilla-structured-encrypt-kafka-background-commit.yaml"
     ;;
   zpcc)
     DRIVER_PATH="driver-kafka/zilla-ccloud-background-commit.yaml"

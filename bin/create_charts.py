@@ -58,6 +58,10 @@ def create_charts(test_results):
                      y_label='Rate (msg/s)',
                      time_series=[(x['driver'], x['consumeRate']) for x in results])
 
+        create_chart(workload, 'End To End Latency 99pct',
+                     y_label='Latency (ms)',
+                     time_series=[(x['driver'], x['endToEndLatency99pct']) for x in results])
+
         create_chart(workload, 'End To End Latency Avg',
                      y_label='Latency Avg (msec)',
                      time_series=[(x['driver'], x['endToEndLatencyAvg']) for x in results])

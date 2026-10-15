@@ -42,6 +42,7 @@ bindings:
         port: 9093
       internal:
         host: kafka-####.internal.net
+        default: kafka-1000.internal.net
         port: 9093
     exit: tls_client
   tls_client:
@@ -56,7 +57,10 @@ bindings:
   tcp_client:
     type: tcp
     kind: client
-
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout
 
 ---
 name: confluent-cloud
@@ -105,4 +109,216 @@ bindings:
   tcp_client:
     type: tcp
     kind: client
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout
 
+---
+name: apache-kafka-encrypt
+vaults:
+  external:
+    type: filesystem
+    options:
+      keys:
+        store: zilla.server.keytstore.jks
+        type: pkcs12
+        password: generated
+  internal:
+    type: filesystem
+    options:
+      trust:
+        store: kafka.client.truststore.jks
+        type: pkcs12
+        password: generated
+  secrets:
+    type: filesystem
+    options:
+      secrets:
+        store: zilla.server.secrets
+        type: pkcs12
+        password: generated
+        entries:
+          payload-key: payload-key
+guards:
+  inline_guard:
+    type: inline
+bindings:
+  tcp_server_encrypt:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 9095
+    exit: tls_server_encrypt
+  tls_server_encrypt:
+    type: tls
+    kind: server
+    vault: external
+    options:
+      keys:
+      - external.net
+    exit: kafka_proxy_encrypt
+  kafka_proxy_encrypt:
+    type: kafka-proxy
+    kind: proxy
+    options:
+      topics:
+        - name: "*"
+          value:
+            model: bytes
+            transforms:
+              guarded:
+                inline_guard: []
+              encryption:
+                vault:
+                  secrets:
+                    - payload-key
+      external:
+        host: kafka-####.external.net
+        default: kafka.external.net
+        port: 9095
+        authorization:
+          inline_guard:
+            mechanism: plain
+            pattern: "{username}:{password}"
+      internal:
+        host: kafka-####.internal.net
+        default: kafka-1000.internal.net
+        port: 9093
+    exit: tls_client_encrypt
+  tls_client_encrypt:
+    type: tls
+    kind: client
+    vault: internal
+    options:
+      trust:
+      - serverca
+      trustcacerts: true
+    exit: tcp_client_encrypt
+  tcp_client_encrypt:
+    type: tcp
+    kind: client
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout
+
+---
+name: apache-kafka-structured-field-encrypt
+catalogs:
+  my_catalog:
+    type: inline
+    options:
+      subjects:
+        test-topic-value:
+          version: latest
+          schema: |
+            {
+              "type": "object",
+              "properties":
+              {
+                "id": { "type": "string" },
+                "status": { "type": "string" },
+                "ssn": { "type": "string", "x-kind": "pii-encrypt" },
+                "notes": { "type": "string" }
+              }
+            }
+vaults:
+  external:
+    type: filesystem
+    options:
+      keys:
+        store: zilla.server.keytstore.jks
+        type: pkcs12
+        password: generated
+  internal:
+    type: filesystem
+    options:
+      trust:
+        store: kafka.client.truststore.jks
+        type: pkcs12
+        password: generated
+  secrets:
+    type: filesystem
+    options:
+      secrets:
+        store: zilla.server.secrets
+        type: pkcs12
+        password: generated
+        entries:
+          payload-key: payload-key
+guards:
+  inline_guard:
+    type: inline
+bindings:
+  tcp_server_encrypt:
+    type: tcp
+    kind: server
+    options:
+      host: 0.0.0.0
+      port:
+        - 9096
+    exit: tls_server_encrypt
+  tls_server_encrypt:
+    type: tls
+    kind: server
+    vault: external
+    options:
+      keys:
+        - external.net
+    exit: kafka_proxy_encrypt
+  kafka_proxy_encrypt:
+    type: kafka-proxy
+    kind: proxy
+    options:
+      topics:
+        - name: "*"
+          value:
+            model: json
+            catalog:
+              my_catalog:
+                - subject: test-topic-value
+                  version: latest
+            transforms:
+              - select:
+                  - type: structure
+                    fields:
+                      - tagged:
+                          - x-kind: pii-encrypt
+                guarded:
+                  inline_guard: []
+                encryption:
+                  vault:
+                    secrets:
+                      - payload-key
+      external:
+        host: kafka-####.external.net
+        default: kafka.external.net
+        port: 9096
+        authorization:
+          inline_guard:
+            mechanism: plain
+            pattern: "{username}:{password}"
+      internal:
+        host: kafka-####.internal.net
+        default: kafka-1000.internal.net
+        port: 9093
+    exit: tls_client_encrypt
+  tls_client_encrypt:
+    type: tls
+    kind: client
+    vault: internal
+    options:
+      trust:
+        - serverca
+      trustcacerts: true
+    exit: tcp_client_encrypt
+  tcp_client_encrypt:
+    type: tcp
+    kind: client
+telemetry:
+  exporters:
+    stdout_logs_exporter:
+      type: stdout

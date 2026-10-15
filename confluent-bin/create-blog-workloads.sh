@@ -1,5 +1,4 @@
 #!/bin/bash
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -13,7 +12,6 @@
 # limitations under the License.
 #
 
-
 WARMUP_DURATION=30
 TEST_DURATION=60
 
@@ -22,10 +20,11 @@ function generate_workload {
   TOPIC_COUNT=$2
   PART_COUNT=$3
   THROUGHPUT_MBPS=$4
+  MSG_SIZE=${5:-2}   # Kb, defaults to 2
+  PAYLOAD=${6:-payload/payload-${MSG_SIZE}Kb.data}
 
   PRODUCER_PER_TOPIC=1
   CONSUMER_PER_GROUP=1
-  MSG_SIZE=2   # Kb
 
   PRODUCER_RATE=$(( ($THROUGHPUT_MBPS * 1024 * 1024) / ($MSG_SIZE * 1024)  ))
 
@@ -39,7 +38,7 @@ topics: $TOPIC_COUNT
 partitionsPerTopic: $PART_COUNT
 messageSize: $(( $MSG_SIZE * 1024 ))
 keyDistributor: "NO_KEY"
-payloadFile: "payload/payload-${MSG_SIZE}Kb.data"
+payloadFile: "$PAYLOAD"
 subscriptionsPerTopic: 3
 consumerPerSubscription: $CONSUMER_PER_GROUP
 producersPerTopic: $PRODUCER_PER_TOPIC
@@ -51,7 +50,7 @@ EOF
 
 }
 
-# generate_workload {CKU} {TOPIC_COUNT} {PARTITION_COUNT_PER_TOPIC} {THROUGHPUT_MBPS}
+#
 
 # 2 CKU
 ## Variable throughput
@@ -62,6 +61,11 @@ generate_workload 2 45 200 100
 ## Variable partition count
 generate_workload 2 45 40 100
 generate_workload 2 45 100 100
+
+generate_workload 2 45 200 50 1
+
+generate_workload 2 45 200 24 1 payload/payload-1Kb-event.json
+generate_workload 2 45 200 20 1 payload/payload-1Kb-event.json
 
 # 28 CKU
 ## Variable throughput

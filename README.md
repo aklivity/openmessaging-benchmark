@@ -10,12 +10,13 @@ The OpenMessaging Benchmark Framework provides a consistent, reproducible way to
 
 The guide covers end-to-end setup for the following configurations:
 
-| Configuration                | Role                                                | Transport        |
-|------------------------------|-----------------------------------------------------|------------------|
-| Zilla Plus + Apache Kafka    | Zilla Plus as Kafka proxy (Apache Kafka backend)    | TLS (`SSL`)      |
-| Zilla Plus + Confluent Cloud | Zilla Plus as Kafka proxy (Confluent Cloud backend) | TLS (`SASL_SSL`) |
-| Apache Kafka                 | Direct connection baseline                          | TLS (`SSL`)      |
-| Confluent Cloud              | Direct connection baseline                          | TLS (`SASL_SSL`) |
+|             Configuration             |                              Role                              |    Transport     |
+|---------------------------------------|----------------------------------------------------------------|------------------|
+| Zilla Plus + Apache Kafka             | Zilla Plus as Kafka proxy (Apache Kafka backend)               | TLS (`SSL`)      |
+| Zilla Plus + Apache Kafka (encrypted) | Zilla Plus as Kafka proxy, with field-level payload encryption | TLS (`SSL`)      |
+| Zilla Plus + Confluent Cloud          | Zilla Plus as Kafka proxy (Confluent Cloud backend)            | TLS (`SASL_SSL`) |
+| Apache Kafka                          | Direct connection baseline                                     | TLS (`SSL`)      |
+| Confluent Cloud                       | Direct connection baseline                                     | TLS (`SASL_SSL`) |
 
 Every configuration runs with TLS enabled end-to-end — broker listeners, Zilla Plus proxy listeners, and OMB client driver configs all connect over `SSL`/`SASL_SSL`, so results reflect TLS-terminated traffic, not plaintext.
 
