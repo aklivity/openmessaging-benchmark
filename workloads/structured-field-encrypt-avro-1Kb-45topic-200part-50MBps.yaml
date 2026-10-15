@@ -2,7 +2,7 @@ name: structured-field-encrypt-avro-1Kb-45topic-200part-50MBps
 
 topics: 45
 partitionsPerTopic: 200
-messageSize: 1024
+messageSize: 988
 payloadFile: "payload/payload-1Kb-event.avro"
 keyDistributor: "NO_KEY"
 
