@@ -78,13 +78,13 @@ Example values:
 
 ```text
 region          = "us-east-1"
-ami             = "ami-077f9230bb25f6e73"
+ami             = "ami-027646d451c5e9a16"
 profile         = "default"
 subnet_cidrs    = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
 azs             = ["us-east-1a", "us-east-1b", "us-east-1c"]
 ```
 
-> :warning: Please use ami `ami-077f9230bb25f6e73` in `us-east-1` to reproduce the result.
+> :warning: Please use ami `ami-027646d451c5e9a16` in `us-east-1` to reproduce the result.
 
 4. Rename `terraform.tfvars.tpl` to `terraform.tfvars` when you have filled in the details.
 
