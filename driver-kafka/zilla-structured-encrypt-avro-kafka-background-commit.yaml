@@ -1,0 +1,29 @@
+
+name: Zilla Plus structured field encrypt (avro)
+driverClass: io.openmessaging.benchmark.driver.kafka.KafkaBenchmarkDriver
+
+replicationFactor: 3
+reset: true
+skipCreateTopic: false
+topicPrefix: test-topic
+
+topicConfig: |
+  min.insync.replicas=2
+
+commonConfig: |
+  bootstrap.servers=SASL_SSL://zilla.external.net:9097
+  security.protocol=SASL_SSL
+  sasl.mechanism=PLAIN
+  sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="benchmark" password="benchmark";
+  ssl.endpoint.identification.algorithm=
+  ssl.truststore.location=/opt/benchmark/zilla.client.truststore.jks
+  ssl.truststore.password=generated
+  request.timeout.ms=300000
+
+producerConfig: |
+  acks=all
+  linger.ms=10
+
+consumerConfig: |
+  auto.offset.reset=earliest
+  enable.auto.commit=true

@@ -1,5 +1,5 @@
 region          = "us-east-1"
-ami             = "ami-07b2d602f3b3a7ece"
+ami             = "ami-027646d451c5e9a16"
 profile         = "default"
 subnet_cidrs    = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
 azs             = ["us-east-1a", "us-east-1b", "us-east-1c"]

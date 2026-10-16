@@ -22,13 +22,15 @@ function generate_workload {
   THROUGHPUT_MBPS=$4
   MSG_SIZE=${5:-2}   # Kb, defaults to 2
   PAYLOAD=${6:-payload/payload-${MSG_SIZE}Kb.data}
+  MSG_BYTES=${7:-$(( $MSG_SIZE * 1024 ))}
+  SUFFIX=${8:-}
 
   PRODUCER_PER_TOPIC=1
   CONSUMER_PER_GROUP=1
 
   PRODUCER_RATE=$(( ($THROUGHPUT_MBPS * 1024 * 1024) / ($MSG_SIZE * 1024)  ))
 
-  WORKLOAD=confluent-blog-workloads-${CKU}cku-${PRODUCER_PER_TOPIC}p-${CONSUMER_PER_GROUP}c-${MSG_SIZE}Kb-${TOPIC_COUNT}topic-${PART_COUNT}part-${THROUGHPUT_MBPS}MBps
+  WORKLOAD=confluent-blog-workloads-${CKU}cku-${PRODUCER_PER_TOPIC}p-${CONSUMER_PER_GROUP}c-${MSG_SIZE}Kb-${TOPIC_COUNT}topic-${PART_COUNT}part-${THROUGHPUT_MBPS}MBps${SUFFIX}
   echo "Generating workload $WORKLOAD"
 
   cat > workloads/$WORKLOAD.yaml << EOF
@@ -36,7 +38,7 @@ function generate_workload {
 name: $WORKLOAD
 topics: $TOPIC_COUNT
 partitionsPerTopic: $PART_COUNT
-messageSize: $(( $MSG_SIZE * 1024 ))
+messageSize: $MSG_BYTES
 keyDistributor: "NO_KEY"
 payloadFile: "$PAYLOAD"
 subscriptionsPerTopic: 3
@@ -65,6 +67,7 @@ generate_workload 2 45 100 100
 generate_workload 2 45 200 50 1
 
 generate_workload 2 45 200 24 1 payload/payload-1Kb-event.json
+generate_workload 2 45 200 24 1 payload/payload-1Kb-event.avro 988 -avro
 generate_workload 2 45 200 20 1 payload/payload-1Kb-event.json
 
 # 28 CKU
