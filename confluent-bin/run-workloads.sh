@@ -16,7 +16,7 @@
 
 function usage {
   echo $1
-  echo "Usage: run-workloads.sh {ak|cc|zpak|zpak-encrypt|zpak-structured-field-encrypt|zpak-structured-field-encrypt-avro|zpcc} workloads/x.yaml"
+  echo "Usage: run-workloads.sh {ak|cc|zpak|zpak-encrypt|zpak-structured-field-encrypt|zpak-structured-field-encrypt-avro|zpak-structured-field-encrypt-protobuf|zpcc} workloads/x.yaml"
   exit 1
 }
 
@@ -56,6 +56,9 @@ case "$AK_CC" in
     ;;
   zpak-structured-field-encrypt-avro)
     DRIVER_PATH="driver-kafka/zilla-structured-encrypt-avro-kafka-background-commit.yaml"
+    ;;
+  zpak-structured-field-encrypt-protobuf)
+    DRIVER_PATH="driver-kafka/zilla-structured-encrypt-protobuf-kafka-background-commit.yaml"
     ;;
   zpcc)
     DRIVER_PATH="driver-kafka/zilla-ccloud-background-commit.yaml"

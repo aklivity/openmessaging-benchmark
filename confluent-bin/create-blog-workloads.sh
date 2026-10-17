@@ -68,6 +68,7 @@ generate_workload 2 45 200 50 1
 
 generate_workload 2 45 200 24 1 payload/payload-1Kb-event.json
 generate_workload 2 45 200 24 1 payload/payload-1Kb-event.avro 988 -avro
+generate_workload 2 45 200 24 1 payload/payload-1Kb-event.protobuf 992 -protobuf
 generate_workload 2 45 200 20 1 payload/payload-1Kb-event.json
 
 # 28 CKU
