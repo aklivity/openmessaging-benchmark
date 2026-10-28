@@ -6,6 +6,9 @@ This README provides you with step-by-step instructions for running OpenMessagin
 |---------------------------------------|----------------------------------------------|----------------------------------------------|
 | Zilla Plus + Apache Kafka             | TLS (`SSL`)                                  | `zilla-kafka-all-background-commit.yaml`     |
 | Zilla Plus + Apache Kafka (encrypted) | TLS (`SSL`) + field-level payload encryption | `zilla-encrypt-kafka-background-commit.yaml` |
+| Zilla Plus + Apache Kafka (structured field encryption, JSON) | TLS (`SASL_SSL`) + per-field encryption | `zilla-structured-encrypt-kafka-background-commit.yaml` |
+| Zilla Plus + Apache Kafka (structured field encryption, Avro) | TLS (`SASL_SSL`) + per-field encryption | `zilla-structured-encrypt-avro-kafka-background-commit.yaml` |
+| Zilla Plus + Apache Kafka (structured field encryption, Protobuf) | TLS (`SASL_SSL`) + per-field encryption | `zilla-structured-encrypt-protobuf-kafka-background-commit.yaml` |
 | Zilla Plus + Confluent Cloud          | TLS (`SASL_SSL`)                             | `zilla-ccloud-background-commit.yaml`        |
 | Apache Kafka                          | TLS (`SSL`)                                  | `ssl-kafka-all-background-commit.yaml`       |
 | Confluent Cloud                       | TLS (`SASL_SSL`)                             | `ccloud-background-commit.yaml`              |
@@ -219,6 +222,15 @@ cd ../../..
 ./confluent-bin/run-workloads.sh zpak-encrypt workloads/confluent-blog-workloads-2cku-1p-1c-2Kb-45topic-200part-100MBps.yaml
 ```
 
+- To run against Zilla Plus + Apache Kafka (structured field encryption). Each format has its own listener and its
+  own payload, all carrying the same record:
+
+```bash
+./confluent-bin/run-workloads.sh zpak-structured-field-encrypt workloads/confluent-blog-workloads-2cku-1p-1c-1Kb-45topic-200part-24MBps.yaml
+./confluent-bin/run-workloads.sh zpak-structured-field-encrypt-avro workloads/confluent-blog-workloads-2cku-1p-1c-1Kb-45topic-200part-24MBps-avro.yaml
+./confluent-bin/run-workloads.sh zpak-structured-field-encrypt-protobuf workloads/confluent-blog-workloads-2cku-1p-1c-1Kb-45topic-200part-24MBps-protobuf.yaml
+```
+
 - To run against Zilla Plus + Confluent Cloud:
 
 ```bash
@@ -258,6 +270,67 @@ same owner tag value when prompted.
 cd driver-kafka/deploy/aklivity-deployment
 terraform destroy
 ```
+
+## Structured field encryption
+
+Encrypts only the fields tagged as sensitive, leaving the rest readable without decrypt permission. Three listeners run
+the same record over three encodings:
+
+| Scenario switch | Port | Namespace in `templates/zilla.yaml` | Model | Payload |
+|---|---|---|---|---|
+| `zpak-structured-field-encrypt` | `9096` | `apache-kafka-structured-field-encrypt` | `json` | `payload/payload-1Kb-event.json` |
+| `zpak-structured-field-encrypt-avro` | `9097` | `apache-kafka-structured-field-encrypt-avro` | `avro` | `payload/payload-1Kb-event.avro` |
+| `zpak-structured-field-encrypt-protobuf` | `9098` | `apache-kafka-structured-field-encrypt-protobuf` | `protobuf` | `payload/payload-1Kb-event.protobuf` |
+
+### The record
+
+| Field | Type | Encrypted |
+|---|---|---|
+| `id` | string, 36 chars | no |
+| `status` | string, `ACTIVE` | no |
+| `ssn` | string, `123-45-6789` | **yes** |
+| `notes` | string, 930 chars | no |
+
+### How the sensitive field is identified
+
+JSON and Avro select on the schema's `x-kind` annotation:
+
+```yaml
+select:
+  - type: structure
+    fields:
+      - tagged:
+          - x-kind: pii-encrypt
+```
+
+`.proto` has no annotation mechanism, so protobuf selects by name:
+
+```yaml
+select:
+  - type: structure
+    fields:
+      - named:
+          - ssn
+```
+
+- The protobuf catalog entry needs `record: Event`. Avro infers it.
+- Avro and Protobuf need an explicit `disclosure: action: redact`. The default omits the field, which an Avro record
+  cannot do unless the field is nullable, and the gateway then fails to configure.
+
+### Workloads
+
+```bash
+./confluent-bin/create-blog-workloads.sh
+```
+
+```text
+confluent-blog-workloads-2cku-1p-1c-1Kb-45topic-200part-24MBps.yaml            1024 B  json
+confluent-blog-workloads-2cku-1p-1c-1Kb-45topic-200part-24MBps-avro.yaml        988 B  avro
+confluent-blog-workloads-2cku-1p-1c-1Kb-45topic-200part-24MBps-protobuf.yaml    992 B  protobuf
+```
+
+45 topics of 200 partitions, 1 producer and 3 consumer groups per topic, 24,576 msg/s, 30-minute warm-up, 60-minute
+measurement. With 3 consumer groups the consume rate settles at 3x the publish rate.
 
 # Troubleshooting
 
